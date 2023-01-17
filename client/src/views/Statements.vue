@@ -1,8 +1,8 @@
 <template>
   <div>
-    <breadcrumbs :breadcrumbs="[{ name: 'Transactions', path: '/transactions' }]"></breadcrumbs>
+    <breadcrumbs :breadcrumbs="[{ name: 'Statements', path: '/statements' }]"></breadcrumbs>
 
-    <div class="pb-8">
+    <div>
       <h1 class="text-2xl font-semibold mb-4">Range</h1>
 
       <vue-tailwind-datepicker :shortcuts="dateShortcuts" :formatter="dateFormatter" v-model="range" />
@@ -12,57 +12,280 @@
       </div>
     </div>
 
-    <div class="pb-8">
-      <h1 class="text-2xl font-semibold mb-4">Categories & Budgets</h1>
+    <h1 class="mt-8 text-2xl font-semibold">Filters</h1>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <a v-for="category in categories"
-           v-bind:key="'category-' + category.id"
-           @click="toggleFilter(category.id)"
-           :class="{ 'opacity-50': !isFilterActive(category.id), 'cursor-pointer': true }">
-          <category
-              :id="category.id"
-              :name="category.name"
-              :budget="getBudget(category.id)"
-              :amount="getTotal(category.id)"
-              :currency="category.currency"></category>
-        </a>
+    <div class="mt-4">
+      <h1 class="text-xl font-semibold mb-4"><font-awesome-icon icon="fa-solid fa-coins"></font-awesome-icon> Categories & Budgets</h1>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
+        <Category v-for="category in categories"
+                  v-bind:key="'category-' + category.id"
+                  class="cursor-pointer hover:bg-gray-100"
+                  :style="{ opacity: isCategoryFilterActive(category.id) ? 1 : 0.5 }"
+                  :category="category"
+                  :statements="getCategoryStatements(category)"
+                  :budgetFactor="budgetFactor"
+                  @click="toggleCategoryFilter(category.id)"></Category>
       </div>
     </div>
 
-    <div class="pb-8">
-      <h1 class="text-2xl font-semibold mb-4">Transactions</h1>
+    <div class="mt-4" v-if="tags.length > 0">
+      <h1 class="text-xl font-semibold mb-4"><font-awesome-icon icon="fa-solid fa-tag"></font-awesome-icon> Tags</h1>
+
+      <div>
+        <div class="inline-block rounded-full py-0.5 px-2.5 cursor-pointer opacity-50 hover:opacity-100 mr-1 mb-1.5 bg-red-200"
+             @click="clearTagFilters">
+          <font-awesome-icon icon="fa-solid fa-xmark"></font-awesome-icon>
+        </div>
+
+        <div v-for="tag in tags" v-bind:key="'tag-' + tag.id"
+             class="inline-block rounded-full py-0.5 px-2.5 cursor-pointer hover:opacity-100 mr-1 mb-1.5 border"
+             :class="{ 'opacity-50 border-white': !isTagFilterActive(tag.id), 'opacity-80 border-black': isTagFilterActive(tag.id) }"
+             :style="{ 'background-color': tag.attributes.color, color: tag.attributes.textColor }"
+             @click="toggleTagFilter(tag.id)">
+          <span>{{ tag.attributes.name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4" v-if="accounts.length > 0">
+      <h1 class="text-xl font-semibold mb-4"><font-awesome-icon icon="fa-solid fa-wallet"></font-awesome-icon> Accounts</h1>
+
+      <div>
+        <div class="inline-block rounded-full py-0.5 px-2.5 cursor-pointer opacity-50 hover:opacity-100 mr-1 mb-1.5 bg-red-200"
+             @click="clearAccountFilters">
+          <font-awesome-icon icon="fa-solid fa-xmark"></font-awesome-icon>
+        </div>
+
+        <div v-for="account in accounts" v-bind:key="'account-' + account.id"
+             class="inline-block rounded-full py-0.5 px-2.5 cursor-pointer hover:opacity-100 mr-1 mb-1.5 bg-gray-100 text-black border"
+             :class="{ 'opacity-50 border-white': !isAccountFilterActive(account.id), 'opacity-80 border-black': isAccountFilterActive(account.id) }"
+             @click="toggleAccountFilter(account.id)">
+          <span>{{ account.attributes.name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 mb-8">
+      <h1 class="text-2xl font-semibold mb-4">Statements</h1>
 
       <div class="grid grid-cols-1 gap-4">
-        <Transaction v-for="transaction in filteredTransactions"
-                 :transaction="transaction"
-                 v-bind:key="'transaction-' + transaction.id" class="cursor-pointer"
-                 @click="selectTransaction(transaction)"></Transaction>
+        <div class="block p-6 bg-gray-800 rounded-lg shadow grid grid-cols-2 gap-4 text-white">
+          <div class="flex items-center">
+            <h1 class="text-lg">
+              <font-awesome-icon icon="fa-solid fa-coins"></font-awesome-icon>
+              <span class="ml-2.5">Change in Balance</span>
+            </h1>
+          </div>
+          <div class="text-right">
+            <div>
+              <span>Total: </span>
+              <span class="text-lg font-semibold" :class="{ 'text-red-500': total < 0, 'text-green-500': total >= 0 }">
+                {{ total >=0 ? '+' : '' }}{{ $filters.formatNumber(total) }}
+              </span>
+            </div>
+            <div v-if="filteredStatements.length !== statements.length" >
+              <span>Filtered: </span>
+              <span v-if="filteredStatements.length !== statements.length" class="text-lg font-semibold" :class="{ 'text-red-500': filteredTotal < 0, 'text-green-500': filteredTotal >= 0 }">
+                {{ filteredTotal >= 0 ? '+' : '' }}{{ $filters.formatNumber(filteredTotal) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div class="block p-3 bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-md text-center text-lg cursor-pointer"
+               @click="showModal(null)">
+            <font-awesome-icon icon="fa-solid fa-circle-plus"></font-awesome-icon>
+            <span class="ml-2.5">Add Statement</span>
+          </div>
+
+          <div class="block p-3 bg-green-500 hover:bg-green-600 text-white rounded-lg shadow-md text-center text-lg cursor-pointer"
+               @click="showImportModal = true">
+            <font-awesome-icon icon="fa-solid fa-file-import"></font-awesome-icon>
+            <span class="ml-2.5">Import Statements</span>
+          </div>
+
+          <div class="block p-3 bg-blue-300 hover:bg-blue-400 text-white rounded-lg shadow-md text-center text-lg cursor-pointer"
+               @click="applyPatterns">
+            <font-awesome-icon icon="fa-solid fa-arrows-rotate"></font-awesome-icon>
+            <span class="ml-2.5">Apply Categories & Tags</span>
+          </div>
+
+          <div class="block p-3 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-md text-center text-lg cursor-pointer col-span-1 md:col-span-2 xl:col-span-1"
+               @click="deleteStatements">
+            <font-awesome-icon icon="fa-solid fa-trash"></font-awesome-icon>
+            <span class="ml-2.5">Delete All Statements</span>
+          </div>
+        </div>
+
+        <div class="text-center flex gap-4 items-center" v-if="statements.length !== filteredStatements.length">
+          <div class="flex-grow bg-gray-300 h-0.5 rounded-xl"></div>
+          <div>{{ statements.length - filteredStatements.length }} statements are hidden based on the filters selected</div>
+          <div class="flex-grow bg-gray-300 h-0.5 rounded-xl"></div>
+        </div>
+
+        <Statement v-for="statement in filteredStatements"
+                   v-bind:key="'statement-' + statement.id"
+                   class="hover:bg-gray-100 cursor-pointer"
+                   :statement="statement"
+                   @click="showModal(statement)"></Statement>
       </div>
     </div>
 
-    <transaction-modal v-if="modal.show"
-                       :transaction="modal.transaction"
-                       :categories="categories"
-                       @hide="modal.show = false"
-                       @save="saveTransaction"></transaction-modal>
+    <modal :title="selectedStatement.id ? 'Edit Statement' : 'Add Statement'" v-if="selectedStatement" @hide="hideModal">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <div class="font-semibold">Amount</div>
+          <input type="number" placeholder="Amount"
+                 class="rounded-md w-full"
+                 :class="{ 'border-red-500': selectedStatement.attributes.amount === '' }"
+                 v-model="selectedStatement.attributes.amount">
+        </div>
+        <div>
+          <div class="font-semibold">Currency</div>
+          <input type="text" min="3" max="3"
+                 class="rounded-md w-full"
+                 placeholder="Currency"
+                 :class="{ 'border-red-500': selectedStatement.attributes.currency.length !== 3 }"
+                 v-model="selectedStatement.attributes.currency">
+        </div>
+      </div>
+
+      <div class="mt-2 grid grid-cols-2 gap-4">
+        <div>
+          <div class="font-semibold">Booking Date</div>
+          <input type="date" placeholder="Booking Date"
+                 class="rounded-md w-full"
+                 :class="{ 'border-red-500': !selectedStatement.attributes.bookingDate }"
+                 v-model="selectedStatement.attributes.bookingDate">
+        </div>
+        <div>
+          <div class="font-semibold">Value Date</div>
+          <input type="date" placeholder="Value Date"
+                 class="rounded-md w-full"
+                 :class="{ 'border-red-500': !selectedStatement.attributes.valueDate }"
+                 v-model="selectedStatement.attributes.valueDate">
+        </div>
+      </div>
+
+      <div class="mt-2">
+        <div class="font-semibold">Type</div>
+        <input type="text" placeholder="Type"
+               class="rounded-md w-full"
+               :class="{ 'border-red-500': !selectedStatement.attributes.type }"
+               v-model="selectedStatement.attributes.type">
+      </div>
+
+      <div class="mt-2">
+        <div class="font-semibold">Purpose</div>
+        <textarea type="text" class="rounded-md w-full" placeholder="Purpose" v-model="selectedStatement.attributes.purpose"></textarea>
+      </div>
+
+      <div class="mt-2">
+        <div class="font-semibold">Third Party Name</div>
+        <input type="text" class="rounded-md w-full" placeholder="Third Party Name" v-model="selectedStatement.attributes.thirdPartyName">
+      </div>
+
+      <div class="mt-2 grid grid-cols-2 gap-4">
+        <div>
+          <div class="font-semibold">Third Party Account</div>
+          <input type="text" class="rounded-md w-full" placeholder="Third Party Account" v-model="selectedStatement.attributes.thirdPartyAccount">
+        </div>
+        <div>
+          <div class="font-semibold">Third Party Bank Code</div>
+          <input type="text" class="rounded-md w-full" placeholder="Third Party Bank Code" v-model="selectedStatement.attributes.thirdPartyBankCode">
+        </div>
+      </div>
+
+      <div class="mt-2 grid grid-cols-3 gap-4">
+        <div>
+          <div class="font-semibold">Creditor ID</div>
+          <input type="text" class="rounded-md w-full" placeholder="Creditor ID" v-model="selectedStatement.attributes.creditorId">
+        </div>
+        <div>
+          <div class="font-semibold">Mandate Reference</div>
+          <input type="text" class="rounded-md w-full" placeholder="Mandate Reference" v-model="selectedStatement.attributes.mandateReference">
+        </div>
+        <div>
+          <div class="font-semibold">Payment Information ID</div>
+          <input type="text" class="rounded-md w-full" placeholder="Payment Information ID" v-model="selectedStatement.attributes.paymentInformationId">
+        </div>
+      </div>
+
+      <div class="mt-2 grid grid-cols-2 gap-4">
+        <div>
+          <div class="font-semibold">Account</div>
+          <select class="w-full rounded-md" :value="selectedStatement.relationships.account.data.id" @change="e => selectedStatement.relationships.account.data.id = e.target.value">
+            <option v-for="account in accounts" :value="account.id">{{ account.attributes.name }}</option>
+          </select>
+        </div>
+        <div>
+          <div class="font-semibold">Category</div>
+          <select class="w-full rounded-md" :value="selectedStatement.relationships.category.data.id" @change="e => selectedStatement.relationships.category.data.id = e.target.value">
+            <option :value="-1">Select Automatically</option>
+            <option v-for="category in categories" :value="category.id">{{ category.attributes.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-2">
+        <div class="font-semibold">Comment</div>
+        <textarea class="rounded-md w-full" placeholder="Comment" v-model="selectedStatement.attributes.comment"></textarea>
+      </div>
+
+      <div class="mt-2">
+        <div class="font-semibold">Tags</div>
+        <div class="form-check">
+          <input v-model="autoSelectStatementTags"
+                 class="form-check-input appearance-none h-4 w-4 border border-gray-300 rounded-sm bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 mt-1 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
+                 type="checkbox"
+                 id="flexCheckDefault">
+          <label class="form-check-label inline-block text-gray-800" for="flexCheckDefault">
+            Apply tags automatically
+          </label>
+        </div>
+        <select v-show="tags.length > 0 && !autoSelectStatementTags" class="rounded-md w-full mt-2" multiple ref="tagSelector">
+          <option v-for="tag in tags" v-bind:key="'tag-option-' + tag.id" :value="tag.id" :selected="isTagActive(selectedStatement, tag.id)">{{ tag.attributes.name }}</option>
+        </select>
+      </div>
+
+      <div class="mt-4 pt-4 border-t-2 flex gap-2 flex">
+        <input type="submit" value="Delete"
+               v-if="selectedStatement.id"
+               class="rounded-md bg-red-500 px-4 py-1.5 text-white cursor-pointer hover:bg-red-800"
+               @click="deleteStatement">
+        <div class="flex-grow"></div>
+        <input type="submit" value="Save"
+               class="rounded-md bg-blue-500 px-4 py-1.5 text-white cursor-pointer hover:bg-blue-800"
+               @click="submitStatement">
+      </div>
+    </modal>
+
+    <StatementImport :show="showImportModal" @hide="showImportModal = false" @imported="refreshStatements"></StatementImport>
   </div>
 </template>
 
 <script>
-import Transaction from "../components/Transaction.vue";
-import axios from "axios";
 import dayjs from "dayjs";
 import Category from "../components/Category.vue";
 import Breadcrumbs from "../components/Breadcrumbs.vue";
 import {FontAwesomeIcon} from "@fortawesome/vue-fontawesome";
-import TransactionModal from "../components/TransactionModal.vue";
+import Statement from "../components/Statement.vue"
+import Card from "../components/Card.vue";
+import Modal from "../components/Modal.vue";
+import StatementImport from "../components/StatementImport.vue";
+
+// TODO: save/read range to/from local storage
 
 export default {
-  name: "Transactions",
-  components: {TransactionModal, FontAwesomeIcon, Breadcrumbs, Category, Transaction},
+  name: "Statements",
+  components: {StatementImport, Modal, Statement, FontAwesomeIcon, Breadcrumbs, Category, Card},
   data() {
     return {
+      showImportModal: false,
+      selectedStatement: null,
+      autoSelectStatementTags: false,
       dateFormatter: {
         date: 'YYYY-MM-DD',
         month: 'MMM'
@@ -129,95 +352,46 @@ export default {
         from: null,
         to: null
       },
-      filters: [],
-      modal: {
-        show: false,
-        transaction: null
-      }
+      categoryFilters: [],
+      tagFilters: [],
+      accountFilters: []
     }
   },
   watch: {
     range() {
       this.updateQueryParams()
-      this.$store.dispatch('fetchTransactions', { from: this.range.from, to: this.range.to })
+      this.$store.dispatch('fetchStatements', { from: this.range.from, to: this.range.to })
     }
   },
   computed: {
-    transactions() {
-      return this.$store.state.transactions
+    accounts() {
+      return this.$store.getters.getAccounts()
     },
     categories() {
-      return this.$store.state.categories
-    },
-    filteredTransactions() {
-      const activeCategories = this.categories.map(it => it.id).filter(this.isFilterActive)
-      return this.transactions.filter(it => activeCategories.includes(it.category.id))
-    }
-  },
-  mounted() {
-    this.range.from = this.$route.query.from || dayjs().startOf('month').format('YYYY-MM-DD')
-    this.range.to = this.$route.query.to || dayjs().endOf('month').format('YYYY-MM-DD')
-
-    this.$store.dispatch('fetchTransactions', { from: this.range.from, to: this.range.to })
-    this.$store.dispatch('fetchCategories').then(() => {
-      const existingFilters = this.$route.query.filters
-      if (existingFilters) {
-        this.filters = existingFilters.split(",")
-      } else {
-        this.filters = this.categories.map(it => it.id)
-      }
-    })
-  },
-  methods: {
-    toggleFilter(id) {
-      if (this.filters.includes(id)) {
-        this.filters = this.filters.filter(it => it !== id)
-      } else {
-        this.filters = [...this.filters, id]
-      }
-      this.updateQueryParams()
-    },
-    isFilterActive(id) {
-      return this.filters.includes(id)
-    },
-    updateQueryParams() {
-      this.$router.push({
-        path: '/transactions',
-        query: {
-          from: this.range.from,
-          to: this.range.to,
-          filters: this.filters.length !== this.categories.length ? this.filters.join(",") : undefined
-        }
+      const categories = this.$store.getters.getCategories()
+      categories.sort((a, b) => {
+        const amountA = this.getCategorySum(a)
+        const amountB = this.getCategorySum(b)
+        return amountA - amountB
       })
+      return categories
     },
-    selectTransaction(transaction) {
-      this.modal.transaction = transaction
-      this.modal.show = true
+    statements() {
+      return this.$store.getters.getStatements(this.range.from, this.range.to)
     },
-    saveTransaction(categoryId, comment) {
-      console.log(categoryId, comment, this.categories)
-
-      const transaction = this.modal.transaction
-      const category = this.categories.find(it => it.id === categoryId)
-
-      this.$store.dispatch('updateTransaction', { id: transaction.id, categoryId, comment }).then(() => {
-        this.modal.show = false
-        this.modal.transaction = null
-
-        const otherTransaction = this.transactions.find(it => it.id === transaction.id)
-        otherTransaction.category = category
-        otherTransaction.comment = comment
-      })
+    filteredStatements() {
+      return this.statements
+          .filter(it => this.isCategoryFilterActive(it.relationships.category.data.id))
+          .filter(it => {
+            const tagIds = it.relationships.tags.data.map(it => it.id)
+            return this.tagFilters.length === 0 || tagIds.filter(it => this.isTagFilterActive(it)).length > 0
+          })
+          .filter(it => {
+            const accountId = it.relationships.account.data.id
+            return this.accountFilters.length === 0 || this.isAccountFilterActive(accountId)
+          })
     },
-    getTotal(categoryId) {
-      let sum = 0
-      this.transactions.filter(it => it.category.id == categoryId).forEach(it => sum += it.amount)
-      return sum
-    },
-    getBudget(categoryId) {
-      const category = this.categories.find(it => it.id == categoryId)
-      if (category == null || category.budget == null) return null
-
+    budgetFactor() {
       const from = dayjs(this.range.from)
       const to = dayjs(this.range.to)
 
@@ -243,13 +417,183 @@ export default {
 
         diffMonths += actualDays / daysInMonth
       }
+      return diffMonths
+    },
+    total() {
+      let sum = 0
+      this.statements.forEach(it => sum += it.attributes.amount)
+      return sum
+    },
+    filteredTotal() {
+      let sum = 0
+      this.filteredStatements.forEach(it => sum += it.attributes.amount)
+      return sum
+    },
+    tags() {
+      return this.$store.getters.getTags()
+    }
+  },
+  mounted() {
+    this.range.from = this.$route.query.from || dayjs().startOf('month').format('YYYY-MM-DD')
+    this.range.to = this.$route.query.to || dayjs().endOf('month').format('YYYY-MM-DD')
 
-      return category.budget * diffMonths
+    const categoryFilters = this.$route.query.categories
+    if (categoryFilters) {
+      this.categoryFilters = categoryFilters.split(",").map(it => parseInt(it))
+    }
+
+    const tagFilters = this.$route.query.tags
+    if (tagFilters) {
+      this.tagFilters = tagFilters.split(",").map(it => parseInt(it))
+    }
+
+    const accountFilters = this.$route.query.accounts
+    if (accountFilters) {
+      this.accountFilters = accountFilters.split(",").map(it => parseInt(it))
+    }
+
+    this.refreshStatements()
+  },
+  methods: {
+    refreshStatements() {
+      this.$store.dispatch('fetchAccounts')
+      this.$store.dispatch('fetchCategories')
+      this.$store.dispatch('fetchTags')
+      this.$store.dispatch('fetchStatements', { from: this.range.from, to: this.range.to })
+    },
+    showModal(statement) {
+      this.autoSelectStatementTags = false;
+
+      if (!statement) {
+        statement = {
+          attributes: {
+            bookingDate: dayjs().format('YYYY-MM-DD'),
+            valueDate: dayjs().format('YYYY-MM-DD'),
+            type: null,
+            amount: 0,
+            currency: '',
+            purpose: null,
+            creditorId: null,
+            mandateReference: null,
+            paymentInformationId: null,
+            thirdPartyName: null,
+            thirdPartyAccount: null,
+            thirdPartyBankCode: null
+          },
+          relationships: {
+            account: { data: { type: 'accounts',  id: this.accounts[0].id } },
+            category: { data: { type: 'categories',  id: -1 } },
+            tags: { data: [] }
+          }
+        }
+      } else {
+        statement = JSON.parse(JSON.stringify(statement))
+      }
+      this.selectedStatement = statement
+    },
+    hideModal() {
+      this.selectedStatement = null
+    },
+    submitStatement() {
+      if (this.selectedStatement == null) return;
+
+      this.selectedStatement.relationships.tags.data = !this.autoSelectStatementTags
+          ? Array.from(this.$refs.tagSelector.options).filter(it => it.selected).map(it => ({ type: 'tags', id: parseInt(it.value) }))
+          : null
+
+      const action = this.selectedStatement.id == null ? 'createStatement' : 'updateStatement'
+      this.$store.dispatch(action, this.selectedStatement).then(() => {
+        this.selectedStatement = null
+      })
+    },
+    deleteStatement() {
+      this.$store.dispatch('deleteStatement', { id: this.selectedStatement.id }).then(() => {
+        this.selectedStatement = null
+      })
+    },
+    isCategoryFilterActive(id) {
+      return this.categoryFilters.length === 0 || this.categoryFilters.includes(id)
+    },
+    toggleCategoryFilter(id) {
+      if (this.categoryFilters.includes(id)) {
+        this.categoryFilters = this.categoryFilters.filter(it => it !== id)
+      } else {
+        this.categoryFilters = [...this.categoryFilters, id]
+      }
+
+      if (this.categoryFilters.length >= this.categories.length) {
+        this.categoryFilters = []
+      }
+
+      this.updateQueryParams()
+    },
+    isTagFilterActive(id) {
+      return this.tagFilters.includes(id)
+    },
+    toggleTagFilter(id) {
+      if (this.tagFilters.includes(id)) {
+        this.tagFilters = this.tagFilters.filter(it => it !== id)
+      } else {
+        this.tagFilters = [...this.tagFilters, id]
+      }
+
+      this.updateQueryParams()
+    },
+    isAccountFilterActive(id) {
+      return this.accountFilters.includes(id)
+    },
+    toggleAccountFilter(id) {
+      if (this.accountFilters.includes(id)) {
+        this.accountFilters = this.accountFilters.filter(it => it !== id)
+      } else {
+        this.accountFilters = [...this.accountFilters, id]
+      }
+
+      this.updateQueryParams()
+    },
+    updateQueryParams() {
+      this.$router.push({
+        path: '/statements',
+        query: {
+          from: this.range.from,
+          to: this.range.to,
+          categories: this.categoryFilters.join(','),
+          tags: this.tagFilters.join(','),
+          accounts: this.accountFilters.join(',')
+        }
+      })
+    },
+    getCategoryStatements(category) {
+      return this.statements.filter(it => it.relationships.category.data.id === category.id)
+    },
+    getCategorySum(category) {
+      let sum = 0
+      const statements = this.getCategoryStatements(category)
+      statements.forEach(it => sum += it.attributes.amount)
+      return sum
+    },
+    getStatementTags(statement) {
+      return statement.relationships.tags.data.map(it => it.id)
+    },
+    deleteStatements() {
+      this.$store.dispatch('clearStatements')
+    },
+    applyPatterns() {
+      this.$store.dispatch('applyPatterns').then(() => {
+        this.refreshStatements()
+      })
+    },
+    isTagActive(statement, id) {
+      return statement.relationships.tags.data.map(it => it.id).includes(id)
+    },
+    clearTagFilters() {
+      this.tagFilters = []
+      this.updateQueryParams()
+    },
+    clearAccountFilters() {
+      this.accountFilters = []
+      this.updateQueryParams()
     }
   }
 }
 </script>
-
-<style scoped>
-
-</style>

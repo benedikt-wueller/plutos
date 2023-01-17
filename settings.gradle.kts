@@ -1,3 +1,3 @@
 
-rootProject.name = "obsidian"
+rootProject.name = "plutos"
 

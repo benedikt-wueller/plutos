@@ -4,6 +4,7 @@ import dev.benedikt.plutos.api.structure.*
 import dev.benedikt.plutos.models.*
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import io.ktor.server.util.*
 import org.jetbrains.exposed.sql.ResultRow
@@ -13,53 +14,85 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
-fun Route.accountRouting() {
-    route("/accounts") {
-        // Get all accounts.
+fun Route.categoryPatternRouting() {
+    route("/categoryPatterns") {
+        // Get all category patterns.
         get {
-            val entities = transaction { Accounts.selectAll().map(ResultRow::toAccount) }
+            val entities = transaction { CategoryPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toCategoryPattern) }
             call.respondDocument(HttpStatusCode.OK, entities.map { it.toResourceObject() })
         }
 
-        route("{accountId}") {
-            // Get account.
+        route("{id}") {
+            // Get category pattern.
             get {
-                val id = call.parameters.getOrFail("accountId").toIntOrNull()
-                val entity = transaction { id?.let { Accounts.select { Accounts.id eq it }.firstOrNull() }?.toAccount() }
+                val id = call.parameters.getOrFail("id").toIntOrNull()
+                val entity = transaction { id?.let { CategoryPatterns.leftJoin(Patterns).select { CategoryPatterns.id eq it }.firstOrNull() }?.toCategoryPattern() }
 
                 if (entity == null) {
-                    call.respondError(HttpStatusCode.NotFound, ErrorObject("account_not_found", "The account does not exist."))
+                    call.respondCategoryPatternNotFound()
                     return@get
                 }
 
                 call.respondDocument(HttpStatusCode.OK, entity.toResourceObject())
             }
 
-            // Delete account.
+            // Update category pattern.
+            patch {
+                val id = call.parameters.getOrFail("id").toIntOrNull()
+                val data = call.receive<ModelWrapper<Pattern>>().data.copy(id = id)
+
+                val entity = transaction {
+                    val categoryPattern = CategoryPatterns.select { CategoryPatterns.id eq id }.firstOrNull() ?: return@transaction null
+                    val entity = data.toCategoryPattern(categoryPattern[CategoryPatterns.patternId].value, categoryPattern[CategoryPatterns.categoryId].value)
+                    if (!Patterns.updatePattern(entity.copy(id = categoryPattern[CategoryPatterns.patternId].value))) return@transaction null
+                    return@transaction entity
+                }
+
+                if (entity == null) {
+                    call.respondCategoryPatternNotFound()
+                    return@patch
+                }
+
+                call.respondDocument(HttpStatusCode.OK, entity.toResourceObject())
+            }
+
+            // Delete category pattern.
             delete {
-                val id = call.parameters.getOrFail("accountId").toIntOrNull()
+                val id = call.parameters.getOrFail("id").toIntOrNull()
                 if (id == null) {
                     call.respondDocument(HttpStatusCode.NotFound)
                     return@delete
                 }
 
-                val success = transaction { Accounts.deleteWhere { Accounts.id eq id } > 0 }
+                val success = transaction {
+                    val patternId = CategoryPatterns.slice(CategoryPatterns.patternId)
+                        .select { CategoryPatterns.id eq id }
+                        .firstOrNull()?.get(CategoryPatterns.patternId)?.value
+
+                    Patterns.deleteWhere { Patterns.id eq patternId } > 0
+                    return@transaction patternId != null && CategoryPatterns.deleteWhere { CategoryPatterns.id eq id } > 0
+                }
+
                 if (!success) {
-                    call.respondError(HttpStatusCode.NotFound, ErrorObject("account_not_found", "The account does not exist."))
+                    call.respondCategoryPatternNotFound()
                     return@delete
                 }
 
                 call.respondDocument(HttpStatusCode.OK)
             }
 
-            route("/statements") {
-                // Get statements associated to account.
+            route("/category") {
+                // Get category associated to category pattern.
                 get {
-                    val id = call.parameters.getOrFail("accountId").toIntOrNull()
-                    val entities = transaction { Statements.select { Statements.accountId eq id }.map(ResultRow::toStatement) }
-                    call.respondDocument(HttpStatusCode.OK, entities.map { it.toResourceObject() })
+                    val id = call.parameters.getOrFail("id").toIntOrNull()
+                    val category = transaction { CategoryPatterns.leftJoin(Categories).select { CategoryPatterns.id eq id }.firstOrNull()?.toCategory()?.toResourceObject() }
+                    call.respondDocument(HttpStatusCode.OK, category)
                 }
             }
         }
     }
+}
+
+suspend fun ApplicationCall.respondCategoryPatternNotFound() {
+    this.respondError(HttpStatusCode.NotFound, ErrorObject("category_pattern_not_found", "The category pattern does not exist."))
 }

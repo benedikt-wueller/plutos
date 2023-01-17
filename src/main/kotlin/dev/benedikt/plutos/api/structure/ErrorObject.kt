@@ -1,3 +1,6 @@
-package dev.benedikt.plutos.api.objects
+package dev.benedikt.plutos.api.structure
 
-data class ErrorObject(val code: String, val title: String, val detail: String?)
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class ErrorObject(val code: String, val title: String? = null)

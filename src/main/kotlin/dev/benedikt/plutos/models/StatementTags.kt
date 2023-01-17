@@ -1,3 +1,12 @@
 package dev.benedikt.plutos.models
 
-data class StatementTag()
+import org.jetbrains.exposed.dao.id.IntIdTable
+
+object StatementTags : IntIdTable() {
+    val statementId = reference("statement", Statements)
+    val tagId = reference("tag", Tags)
+
+    init {
+        uniqueIndex(statementId, tagId)
+    }
+}

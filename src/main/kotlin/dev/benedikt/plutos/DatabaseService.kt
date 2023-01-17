@@ -1,5 +1,6 @@
-package dev.benedikt.plutos.old.database
+package dev.benedikt.plutos
 
+import dev.benedikt.plutos.models.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
@@ -11,23 +12,25 @@ object DatabaseService {
     }
 
     fun setup() = transaction {
-        SchemaUtils.createMissingTablesAndColumns(Accounts, Categories, Transactions)
+        SchemaUtils.createMissingTablesAndColumns(
+            Categories,
+            Accounts,
+            Statements,
+            Patterns,
+            Categories,
+            CategoryPatterns,
+            Tags,
+            TagPatterns,
+            StatementTags
+        )
+
         createDefaultCategories()
     }
 
     private fun createDefaultCategories() {
-        if (CategoryPatterns.exists()) {
-            SchemaUtils.createMissingTablesAndColumns(CategoryPatterns)
-            return
-        }
-
-        SchemaUtils.create(CategoryPatterns)
-
-        Categories.insert {
-            it[Categories.id] = UUID.fromString("00000000-0000-0000-0000-000000000000")
-            it[name] = "Other"
-            it[budget] = null
-        }
+        val exists = Categories.select { Categories.default eq true }.any()
+        if (exists) return
+        Categories.insert(Model(Category.type, null, Category("Other", "#E5E7EB", "#000000", null, true)))
     }
 
 }

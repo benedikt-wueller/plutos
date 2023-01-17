@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="test" uuid="43582682-5f7a-4266-bd43-a2f927eb331f">
+    <data-source source="LOCAL" name="plutos" uuid="fd1abdda-b17d-47fa-b431-9f6510d3796a">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:F:\Projects\plutos\test.db</jdbc-url>
+      <jdbc-url>jdbc:sqlite:F:\Projects\plutos\plutos.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
       <libraries>
         <library>

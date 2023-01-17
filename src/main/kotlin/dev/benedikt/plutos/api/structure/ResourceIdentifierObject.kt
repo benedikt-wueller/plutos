@@ -1,5 +1,6 @@
-package dev.benedikt.plutos.api.objects
+package dev.benedikt.plutos.api.structure
 
-data class ResourceIdentifierObject(val type: String, val id: Any) : ResourceLinkage
+import kotlinx.serialization.Serializable
 
-class ResourceIdentifierObjects : ArrayList<ResourceIdentifierObject>(), ResourceLinkage
+@Serializable
+data class ResourceIdentifierObject(val type: String, val id: Int)

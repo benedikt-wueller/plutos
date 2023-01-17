@@ -1,4 +1,6 @@
 package dev.benedikt.plutos.api.structure
 
-class RelationshipPatchBody {
-}
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class RelationshipPatchBody(val data: List<ResourceIdentifierObject>?)

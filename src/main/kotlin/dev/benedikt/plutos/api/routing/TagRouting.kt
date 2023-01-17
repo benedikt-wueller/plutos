@@ -12,99 +12,116 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.transaction
 
-fun Route.categoryRouting() {
-    route("/categories") {
-        // Get all categories.
+fun Route.tagRouting() {
+    route("/tags") {
+        // Get all tags.
         get {
             try {
-                val entities = transaction { Categories.selectAll().map(ResultRow::toCategory) }
+                val entities = transaction { Tags.selectAll().map(ResultRow::toTag) }
                 call.respondDocument(HttpStatusCode.OK, entities.map { it.toResourceObject() })
             } catch (ex: Exception) {
                 ex.printStackTrace()
             }
         }
 
-        // Create new category.
+        // Create new tag.
         post {
-            val data = call.receive<ModelWrapper<Category>>().data
-            val entity = transaction {
-                if (data.attributes.default) {
-                    Categories.update { it[default] = false }
+            val data = call.receive<ResourceWrapper<TagResourceObject>>().data
+            var entity = Model(Tag.type, null, data.attributes)
+
+            val categoryRelationship = data.relationships["category"]?.let { it as? SingleRelationshipObject }
+            if (categoryRelationship != null) {
+                val categoryId = categoryRelationship.data?.id
+                if (categoryId != null) {
+                    val category = transaction { Categories.select { Categories.id eq categoryId } }
+                    if (category == null) {
+                        call.respondCategoryNotFound()
+                        return@post
+                    }
+                    entity.attributes.categoryId = categoryId
+                } else {
+                    entity.attributes.categoryId = null
                 }
-                return@transaction Categories.insert(data)
             }
+
+            entity = transaction { Tags.insert(entity) }
             call.respondDocument(HttpStatusCode.Created, entity.toResourceObject(), includeLinks = false)
         }
 
-        route("{categoryId}") {
-            // Get category.
+        route("{tagId}") {
+            // Get tag.
             get {
-                val id = call.parameters.getOrFail("categoryId").toIntOrNull()
-                val entity = transaction { id?.let { Categories.select { Categories.id eq it }.firstOrNull() }?.toCategory() }
+                val id = call.parameters.getOrFail("tagId").toIntOrNull()
+                val entity = transaction { id?.let { Tags.select { Tags.id eq it }.firstOrNull() }?.toTag() }
 
                 if (entity == null) {
-                    call.respondCategoryNotFound()
+                    call.respondTagNotFound()
                     return@get
                 }
 
                 call.respondDocument(HttpStatusCode.OK, entity.toResourceObject())
             }
 
-            // Update category.
-            put {
-                val id = call.parameters.getOrFail("categoryId").toIntOrNull()
-                val data = call.receive<ModelWrapper<Category>>().data
+            // Update tag.
+            patch {
+                val id = call.parameters.getOrFail("tagId").toIntOrNull()
+                val data = call.receive<ResourceWrapper<TagResourceObject>>().data
 
-                val entity = data.copy(id = id)
+                if (id == null) {
+                    call.respondTagNotFound()
+                    return@patch
+                }
+
+                val entity = Model(Tag.type, id, data.attributes)
+
+                val categoryRelationship = data.relationships["category"]?.let { it as? SingleRelationshipObject }
+                if (categoryRelationship != null) {
+                    val categoryId = categoryRelationship.data?.id
+                    if (categoryId != null) {
+                        val category = transaction { Categories.select { Categories.id eq categoryId } }
+                        if (category == null) {
+                            call.respondCategoryNotFound()
+                            return@patch
+                        }
+                        entity.attributes.categoryId = categoryId
+                    } else {
+                        entity.attributes.categoryId = null
+                    }
+                }
+
                 val success = transaction {
-                    if (entity.attributes.default) {
-                        Categories.update { it[default] = false }
-                    }
-
-                    if (!Categories.update(entity)) {
-                        rollback()
-                        return@transaction false
-                    }
-
-                    val defaultExists = Categories.select { Categories.default eq true }.any()
-                    if (defaultExists) return@transaction true
-
-                    Categories.update({ Categories.id eq id }) { it[default] = true }
-                    return@transaction true
+                    Tags.update(entity)
                 }
 
                 if (!success) {
-                    call.respondCategoryNotFound()
-                    return@put
+                    call.respondTagNotFound()
+                    return@patch
                 }
 
                 call.respondDocument(HttpStatusCode.OK, entity.toResourceObject())
             }
 
-            // Delete category.
+            // Delete tag.
             delete {
-                val id = call.parameters.getOrFail("categoryId").toIntOrNull()
+                val id = call.parameters.getOrFail("tagId").toIntOrNull()
                 if (id == null) {
-                    call.respondDocument(HttpStatusCode.NotFound)
+                    call.respondTagNotFound()
                     return@delete
                 }
 
                 val success = transaction {
-                    val success = Categories.deleteWhere { (Categories.id eq id) and (default eq false) } > 0
+                    val success = Tags.deleteWhere { (Tags.id eq id) } > 0
                     if (!success) return@transaction false
 
-                    val patterns = CategoryPatterns.slice(CategoryPatterns.patternId).select { CategoryPatterns.categoryId eq id }.map { it[CategoryPatterns.patternId] }
+                    val patterns = TagPatterns.slice(TagPatterns.patternId).select { TagPatterns.tagId eq id }.map { it[TagPatterns.patternId] }
                     Patterns.deleteWhere { Patterns.id inList patterns }
-                    CategoryPatterns.deleteWhere { categoryId eq id }
-
-                    val defaultCategoryId = Categories.slice(Categories.id).select { Categories.default eq true }.first()[Categories.id]
-                    Statements.update({ Statements.categoryId eq id }) { it[categoryId] = defaultCategoryId.value }
-
+                    TagPatterns.deleteWhere { tagId eq id }
+                    StatementTags.deleteWhere { tagId eq id }
                     return@transaction true
                 }
 
                 if (!success) {
-                    call.respondError(HttpStatusCode.BadRequest, ErrorObject("category_not_deletable", "The category does not exist or is the default category."))
+                    call.respondTagNotFound()
                     return@delete
                 }
 
@@ -112,29 +129,29 @@ fun Route.categoryRouting() {
             }
 
             route("/patterns") {
-                // Get patterns associated to category.
+                // Get patterns associated to tag.
                 get {
-                    val id = call.parameters.getOrFail("categoryId").toIntOrNull()
+                    val id = call.parameters.getOrFail("tagId").toIntOrNull()
                     val entities = transaction {
-                        CategoryPatterns.leftJoin(Patterns)
-                            .select { CategoryPatterns.categoryId eq id }
-                            .map(ResultRow::toCategoryPattern)
+                        TagPatterns.leftJoin(Patterns)
+                            .select { TagPatterns.tagId eq id }
+                            .map(ResultRow::toTagPattern)
                     }
                     call.respondDocument(HttpStatusCode.OK, entities.map { it.toResourceObject() })
                 }
 
-                // Add pattern to category.
+                // Add pattern to tag.
                 post {
-                    val id = call.parameters.getOrFail("categoryId").toIntOrNull()
-                    val pattern = call.receive<ModelWrapper<CategoryPattern>>().data
+                    val id = call.parameters.getOrFail("tagId").toIntOrNull()
+                    val pattern = call.receive<ModelWrapper<TagPattern>>().data
 
                     val entity = transaction {
-                        val category = Categories.slice(Categories.id).select { Categories.id eq id }.firstOrNull() ?: return@transaction null
-                        return@transaction Patterns.insertCategoryPattern(pattern, category[Categories.id].value)
+                        val tag = Tags.slice(Tags.id).select { Tags.id eq id }.firstOrNull() ?: return@transaction null
+                        return@transaction Patterns.insertTagPattern(pattern, tag[Tags.id].value)
                     }
 
                     if (entity == null) {
-                        call.respondCategoryNotFound()
+                        call.respondTagNotFound()
                         return@post
                     }
 
@@ -143,17 +160,26 @@ fun Route.categoryRouting() {
             }
 
             route("/statements") {
-                // Get statements associated to category.
+                // Get statements associated to tag.
                 get {
-                    val id = call.parameters.getOrFail("categoryId").toIntOrNull()
-                    val entities = transaction { Statements.select { Statements.categoryId eq id }.map(ResultRow::toStatement) }
-                    call.respondDocument(HttpStatusCode.OK, entities.map { it.toResourceObject() })
+                    val id = call.parameters.getOrFail("tagId").toIntOrNull()
+                    val tags = transaction { StatementTags.leftJoin(Statements).select { StatementTags.tagId eq id }.map(ResultRow::toStatement).map { it.toResourceObject() } }
+                    call.respondDocument(HttpStatusCode.OK, tags)
+                }
+            }
+
+            route("/category") {
+                // Get category associated to tag.
+                get {
+                    val id = call.parameters.getOrFail("tagId").toIntOrNull()
+                    val category = transaction { Tags.leftJoin(Categories).select { Tags.id eq id }.firstOrNull()?.toCategory()?.toResourceObject() }
+                    call.respondDocument(HttpStatusCode.OK, category)
                 }
             }
         }
     }
 }
 
-suspend fun ApplicationCall.respondCategoryNotFound() {
-    this.respondError(HttpStatusCode.NotFound, ErrorObject("category_not_found", "The category does not exist."))
+suspend fun ApplicationCall.respondTagNotFound() {
+    this.respondError(HttpStatusCode.NotFound, ErrorObject("tag_not_found", "The tag does not exist."))
 }

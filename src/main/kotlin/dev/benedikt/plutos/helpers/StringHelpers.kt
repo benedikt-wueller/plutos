@@ -1,4 +1,4 @@
-package dev.benedikt.plutos
+package dev.benedikt.plutos.helpers
 
 fun String.condensedAnyOrNull(): String? {
     val data = this.condensed()

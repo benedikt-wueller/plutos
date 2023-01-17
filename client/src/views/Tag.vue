@@ -1,21 +1,17 @@
 <template>
-  <div v-if="category">
+  <div v-if="tag">
     <breadcrumbs :breadcrumbs="[
-        { name: 'Categories', 'path': '/categories' },
-        { name: category.attributes.name, 'path': '/categories/' + category.id }
+        { name: 'Tags', 'path': '/tags' },
+        { name: tag.attributes.name, 'path': '/tags/' + tag.id }
     ]"></breadcrumbs>
 
-    <h1 class="mb-4 text-2xl font-semibold">{{ category.attributes.name }} &ndash; Patterns</h1>
+    <h1 class="mb-4 text-2xl font-semibold">{{ tag.attributes.name }} &ndash; Patterns</h1>
 
-    <div v-if="category.attributes.default" class="mb-4 bg-red-100 py-3 px-4 rounded-md">
-      This is the default category. All statements without any matching pattern will be assigned to this category automatically. No additional patterns are required.
+    <div v-if="!patterns || patterns.length === 0" class="mb-4 bg-blue-100 py-3 px-4 rounded-md">
+      There are no patterns yet. This tag will not be assigned to new statements automatically.
     </div>
 
-    <div v-if="!category.attributes.default && (!patterns || patterns.length === 0)" class="mb-4 bg-blue-100 py-3 px-4 rounded-md">
-      There are no patterns yet. This category will not be assigned to new statements automatically.
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
       <card v-for="pattern in patterns" v-bind:key="'pattern-' + pattern.id" class="hover:bg-gray-100 cursor-pointer" @click="showModal(pattern)">
         <div class="text-xl font-semibold flex-grow">{{ pattern.attributes.name }}</div>
 
@@ -32,9 +28,9 @@
     </div>
 
     <h1 class="text-2xl font-semibold mb-4">Actions</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
       <card class="bg-green-100 hover:bg-green-200 cursor-pointer" name="Add Pattern" icon="fa-solid fa-plus" @click="showModal(null)">
-        <div class="mt-2">Add a new pattern to automatically assign this category to newly imported transactions.</div>
+        <div class="mt-2">Add a new pattern to automatically assign this tag to newly imported transactions.</div>
       </card>
     </div>
 
@@ -60,7 +56,7 @@
                    value="FULL_MATCH"
                    v-model="selectedPattern.attributes.matchMode">
             <label class="form-check-label inline-block text-gray-800" for="flexRadioDefault1">
-              Full Match &mdash; applies this category if any statement value matches the pattern exactly.
+              Full Match &mdash; applies this tag if any statement value matches the pattern exactly.
             </label>
           </div>
           <div class="form-check flex">
@@ -71,7 +67,7 @@
                    value="PARTIAL_MATCH"
                    v-model="selectedPattern.attributes.matchMode">
             <label class="form-check-label inline-block text-gray-800" for="flexRadioDefault2">
-              Partial Match &mdash; applies this category if any statement value contains the pattern.
+              Partial Match &mdash; applies this tag if any statement value contains the pattern.
             </label>
           </div>
           <div class="form-check flex">
@@ -82,7 +78,7 @@
                    value="NO_FULL_MATCH"
                    v-model="selectedPattern.attributes.matchMode">
             <label class="form-check-label inline-block text-gray-800" for="flexRadioDefault3">
-              No Full Match &mdash; applies this category <b>only if</b> no statement value matches the pattern exactly.
+              No Full Match &mdash; applies this tag <b>only if</b> no statement value matches the pattern exactly.
             </label>
           </div>
           <div class="form-check flex">
@@ -93,7 +89,7 @@
                    value="NO_PARTIAL_MATCH"
                    v-model="selectedPattern.attributes.matchMode">
             <label class="form-check-label inline-block text-gray-800" for="flexRadioDefault4">
-              No Partial Match &mdash; applies this category <b>only if</b> no statement value contains the pattern.
+              No Partial Match &mdash; applies this tag <b>only if</b> no statement value contains the pattern.
             </label>
           </div>
         </div>
@@ -120,7 +116,7 @@ import Card from "../components/Card.vue";
 import Modal from "../components/Modal.vue";
 
 export default {
-  name: "Category",
+  name: "tag",
   components: {Modal, Card, FontAwesomeIcon, Breadcrumbs},
   data() {
     return {
@@ -129,17 +125,17 @@ export default {
     }
   },
   computed: {
-    category() {
-      return this.$store.getters.findCategory(this.id)
+    tag() {
+      return this.$store.getters.findTag(this.id)
     },
     patterns() {
-      return this.$store.getters.getCategoryPatterns(this.id)
+      return this.$store.getters.getTagPatterns(this.id)
     }
   },
   mounted() {
-    this.id = this.$route.params['categoryId']
-    this.$store.dispatch('loadCategory', { id: this.id })
-    this.$store.dispatch('fetchCategoryPatterns', { id: this.id })
+    this.id = this.$route.params['tagId']
+    this.$store.dispatch('loadTag', { id: this.id })
+    this.$store.dispatch('fetchTagPatterns', { id: this.id })
   },
   methods: {
     hideModal() {
@@ -149,7 +145,7 @@ export default {
       if (!pattern) {
         pattern = {
           attributes: {
-            name: 'New Category Pattern',
+            name: 'New Tag Pattern',
             regex: '.*',
             matchMode: 'FULL_MATCH',
           }
@@ -161,16 +157,16 @@ export default {
     },
     submitPattern() {
       if (this.selectedPattern == null) return;
-      const action = this.selectedPattern.id == null ? 'createCategoryPattern' : 'updateCategoryPattern'
+      const action = this.selectedPattern.id == null ? 'createTagPattern' : 'updateTagPattern'
       this.$store.dispatch(action, {
-        categoryId: this.id,
+        tagId: this.id,
         pattern : this.selectedPattern
       }).then(() => {
         this.selectedPattern = null
       })
     },
     deletePattern() {
-      this.$store.dispatch('deleteCategoryPattern', { id: this.selectedPattern.id }).then(() => {
+      this.$store.dispatch('deleteTagPattern', { id: this.selectedPattern.id }).then(() => {
         this.selectedPattern = null
       })
     }

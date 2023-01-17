@@ -1,3 +1,5 @@
+postMessage('ping');
+
 setInterval(() => {
-    postMessage();
+    postMessage('ping');
 }, 2500);
