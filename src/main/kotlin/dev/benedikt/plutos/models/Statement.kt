@@ -29,7 +29,7 @@ data class Statement(
     val thirdPartyName: String?,
     val thirdPartyAccount: String?,
     val thirdPartyBankCode: String?,
-    val comment: String?,
+    val comment: String? = null,
 ) : Resource {
     companion object { const val type = "statements" }
 

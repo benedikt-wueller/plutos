@@ -325,7 +325,9 @@ const store = {
             })
         },
         createAccount(context, payload) {
-            payload.attributes.currency = payload.attributes.currency.toUpperCase()
+            if (payload.attributes.currency) {
+                payload.attributes.currency = payload.attributes.currency.toUpperCase()
+            }
 
             context.commit('incrementLoading')
             return axios.post(context.state.baseUrl + '/accounts', {
@@ -343,7 +345,9 @@ const store = {
             })
         },
         updateAccount(context, payload) {
-            payload.attributes.currency = payload.attributes.currency.toUpperCase()
+            if (payload.attributes.currency) {
+                payload.attributes.currency = payload.attributes.currency.toUpperCase()
+            }
 
             context.commit('incrementLoading')
             return axios.patch(context.state.baseUrl + '/accounts/' + payload.id, {

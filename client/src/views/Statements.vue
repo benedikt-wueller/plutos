@@ -134,7 +134,7 @@
     </div>
 
     <modal :title="selectedStatement.id ? 'Edit Statement' : 'Add Statement'" v-if="selectedStatement" @hide="hideModal">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-3 gap-4">
         <div>
           <div class="font-semibold">Amount</div>
           <input type="number" placeholder="Amount"
@@ -150,9 +150,16 @@
                  :class="{ 'border-red-500': selectedStatement.attributes.currency.length !== 3 }"
                  v-model="selectedStatement.attributes.currency">
         </div>
+        <div>
+          <div class="font-semibold">Type</div>
+          <input type="text" placeholder="Type"
+                 class="rounded-md w-full"
+                 :class="{ 'border-red-500': !selectedStatement.attributes.type }"
+                 v-model="selectedStatement.attributes.type">
+        </div>
       </div>
 
-      <div class="mt-2 grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-2 gap-4">
         <div>
           <div class="font-semibold">Booking Date</div>
           <input type="date" placeholder="Booking Date"
@@ -170,24 +177,16 @@
       </div>
 
       <div class="mt-2">
-        <div class="font-semibold">Type</div>
-        <input type="text" placeholder="Type"
-               class="rounded-md w-full"
-               :class="{ 'border-red-500': !selectedStatement.attributes.type }"
-               v-model="selectedStatement.attributes.type">
-      </div>
-
-      <div class="mt-2">
         <div class="font-semibold">Purpose</div>
         <textarea type="text" class="rounded-md w-full" placeholder="Purpose" v-model="selectedStatement.attributes.purpose"></textarea>
       </div>
 
-      <div class="mt-2">
-        <div class="font-semibold">Third Party Name</div>
-        <input type="text" class="rounded-md w-full" placeholder="Third Party Name" v-model="selectedStatement.attributes.thirdPartyName">
-      </div>
 
-      <div class="mt-2 grid grid-cols-2 gap-4">
+      <div class="mt-2 grid grid-cols-3 gap-4">
+        <div>
+          <div class="font-semibold">Third Party Name</div>
+          <input type="text" class="rounded-md w-full" placeholder="Third Party Name" v-model="selectedStatement.attributes.thirdPartyName">
+        </div>
         <div>
           <div class="font-semibold">Third Party Account</div>
           <input type="text" class="rounded-md w-full" placeholder="Third Party Account" v-model="selectedStatement.attributes.thirdPartyAccount">
@@ -198,7 +197,7 @@
         </div>
       </div>
 
-      <div class="mt-2 grid grid-cols-3 gap-4">
+      <div class="mt-2 grid grid-cols-2 gap-4">
         <div>
           <div class="font-semibold">Creditor ID</div>
           <input type="text" class="rounded-md w-full" placeholder="Creditor ID" v-model="selectedStatement.attributes.creditorId">
@@ -207,10 +206,22 @@
           <div class="font-semibold">Mandate Reference</div>
           <input type="text" class="rounded-md w-full" placeholder="Mandate Reference" v-model="selectedStatement.attributes.mandateReference">
         </div>
+      </div>
+
+      <div class="mt-2 grid grid-cols-2 gap-4">
         <div>
           <div class="font-semibold">Payment Information ID</div>
           <input type="text" class="rounded-md w-full" placeholder="Payment Information ID" v-model="selectedStatement.attributes.paymentInformationId">
         </div>
+        <div>
+          <div class="font-semibold">Customer Reference</div>
+          <input type="text" class="rounded-md w-full" placeholder="Payment Information ID" v-model="selectedStatement.attributes.customerReference">
+        </div>
+      </div>
+
+      <div class="mt-2">
+        <div class="font-semibold">Comment</div>
+        <textarea class="rounded-md w-full" placeholder="Comment" v-model="selectedStatement.attributes.comment"></textarea>
       </div>
 
       <div class="mt-2 grid grid-cols-2 gap-4">
@@ -227,11 +238,6 @@
             <option v-for="category in categories" :value="category.id">{{ category.attributes.name }}</option>
           </select>
         </div>
-      </div>
-
-      <div class="mt-2">
-        <div class="font-semibold">Comment</div>
-        <textarea class="rounded-md w-full" placeholder="Comment" v-model="selectedStatement.attributes.comment"></textarea>
       </div>
 
       <div class="mt-2">

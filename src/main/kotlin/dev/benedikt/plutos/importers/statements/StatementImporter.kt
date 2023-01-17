@@ -1,5 +1,6 @@
-package dev.benedikt.plutos.importers
+package dev.benedikt.plutos.importers.statements
 
+import dev.benedikt.plutos.importers.Importer
 import dev.benedikt.plutos.models.*
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.*

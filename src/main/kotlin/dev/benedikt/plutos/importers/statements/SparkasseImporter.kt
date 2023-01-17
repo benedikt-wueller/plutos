@@ -1,4 +1,4 @@
-package dev.benedikt.plutos.importers
+package dev.benedikt.plutos.importers.statements
 
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import dev.benedikt.plutos.models.Statement
@@ -37,7 +37,7 @@ class SparkasseImporter : StatementImporter("sparkasse_csv_camt", "Sparkasse Exp
                     parseLocalDate(it[2].trim(), dateTimeFormatterV2, dateTimeFormatterV8).format(DateTimeFormatter.ISO_DATE),
                     it[3].trim(),
                     it[14].toDoubleInternational()!!,
-                    it[15].trim().take(3),
+                    it[15].trim().take(3).uppercase(),
                     it[4].condensedAnyOrNull(),
                     it[5].condensedAnyOrNull(),
                     it[6].condensedAnyOrNull(),
@@ -45,8 +45,7 @@ class SparkasseImporter : StatementImporter("sparkasse_csv_camt", "Sparkasse Exp
                     it[8].condensedAnyOrNull(),
                     it[11].condensedAnyOrNull(),
                     it[12].condensedAnyOrNull(),
-                    it[13].condensedAnyOrNull(),
-                    null
+                    it[13].condensedAnyOrNull()
                 ),
                 it[0].trim()
             )
