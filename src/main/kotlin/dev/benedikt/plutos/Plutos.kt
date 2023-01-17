@@ -4,8 +4,6 @@ import dev.benedikt.plutos.api.WebServer
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.awt.Desktop
-import java.net.URI
 
 fun main() {
     DatabaseService.setup()
@@ -21,9 +19,6 @@ fun main() {
         }
         WebServer.stop()
     }
-
-    Desktop.getDesktop().browse(URI.create("http://localhost:8143/"))
-//    Desktop.getDesktop().browse(URI.create("http://localhost:5173/"))
 
     WebServer.wait()
 }

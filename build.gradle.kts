@@ -61,21 +61,3 @@ tasks.shadowJar {
     this.archiveClassifier.set("")
     this.archiveVersion.set("")
 }
-
-tasks {
-    val buildClient = register<Exec>("buildClient") {
-        // TODO: make this task platform agnostic
-        this.workingDir("client")
-        commandLine("cmd", "/c", "npm run build")
-    }
-    val copyClient = register<Copy>("copyClient") {
-        from("client/dist")
-        into(layout.buildDirectory.dir("plutos/client/dist"))
-    }
-    register("plutos") {
-        delete("${project.buildDir}/plutos")
-        dependsOn(buildClient)
-        dependsOn(copyClient)
-        dependsOn(shadowJar)
-    }
-}

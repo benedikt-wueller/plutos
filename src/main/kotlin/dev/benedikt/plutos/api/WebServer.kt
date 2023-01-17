@@ -86,12 +86,6 @@ fun Application.configureMiddleware() {
 
 fun Application.configureRouting() {
     routing {
-        static("/") {
-            staticRootFolder = File("./client/dist")
-            files(".")
-            default("index.html")
-        }
-
         route("/api/v1") {
             accountRouting()
             categoryRouting()
