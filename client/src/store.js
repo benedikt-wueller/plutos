@@ -122,7 +122,8 @@ const store = {
             return axios.post(context.state.baseUrl + '/statements', {
                 data: {
                     type: 'statements',
-                    attributes: payload.attributes
+                    attributes: payload.attributes,
+                    relationships: payload.relationships
                 }
             }).then(response => {
                 context.commit('decrementLoading')
