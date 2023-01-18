@@ -39,13 +39,6 @@
       </div>
     </div>
 
-    <div class="fixed top-0 bottom-0 left-0 right-0" style="background-color: rgba(0, 0, 0, 0.25)" v-if="!connected">
-      <modal title="Disconnected" @hide="refresh">
-        The Plutos backend is not available.
-        Restart Plutos to establish a new connection or close this browser tab.
-      </modal>
-    </div>
-
     <ToastMessages></ToastMessages>
   </div>
 </template>
@@ -61,23 +54,23 @@ export default {
   components: {Modal, ToastMessages, ToastMessage},
   data() {
     return {
-      connected: true
+      failedAttempts: 0
     }
   },
   mounted() {
-    const worker = new Worker('worker.js')
-    worker.onmessage = () => {
-      axios.post(this.$store.state.baseUrl + "/utils/keepalive").then(() => {
-        this.connected = true
-      }).catch(() => {
-        this.connected = false
-        window.close()
-      })
-    }
+    setInterval(() => {
+      this.keepAlive()
+    }, 2500)
   },
   methods: {
-    refresh() {
-      window.location.reload()
+    keepAlive() {
+      axios.post(this.$store.state.baseUrl + "/utils/keepalive").then(() => {
+        this.failedAttempts = 0
+      }).catch(() => {
+        this.failedAttempts += 1
+        if (this.failedAttempts < 3) return
+        window.close()
+      })
     }
   }
 }

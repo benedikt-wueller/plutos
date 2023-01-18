@@ -17,7 +17,7 @@
     <div class="mt-4">
       <h1 class="text-xl font-semibold mb-4"><font-awesome-icon icon="fa-solid fa-coins"></font-awesome-icon> Categories & Budgets</h1>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <Category v-for="category in categories"
                   v-bind:key="'category-' + category.id"
                   class="cursor-pointer hover:bg-gray-100"
@@ -112,7 +112,7 @@
             <span class="ml-2.5">Apply Categories & Tags</span>
           </div>
 
-          <div class="block p-3 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-md text-center text-lg cursor-pointer col-span-1 md:col-span-2 xl:col-span-1"
+          <div class="block p-3 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-md text-center text-lg cursor-pointer"
                @click="deleteStatements">
             <font-awesome-icon icon="fa-solid fa-trash"></font-awesome-icon>
             <span class="ml-2.5">Delete All Statements</span>
@@ -268,7 +268,7 @@
       </div>
     </modal>
 
-    <StatementImport :show="showImportModal" @hide="showImportModal = false" @imported="refreshStatements"></StatementImport>
+    <StatementImport :show="showImportModal" @hide="showImportModal = false" @imported="refreshEverything"></StatementImport>
   </div>
 </template>
 
@@ -365,8 +365,7 @@ export default {
   },
   watch: {
     range() {
-      this.updateQueryParams()
-      this.$store.dispatch('fetchStatements', { from: this.range.from, to: this.range.to })
+      this.updateStatementFilters()
     }
   },
   computed: {
@@ -439,32 +438,24 @@ export default {
       return this.$store.getters.getTags()
     }
   },
+  beforeCreate() {
+  },
   mounted() {
-    this.range.from = this.$route.query.from || dayjs().startOf('month').format('YYYY-MM-DD')
-    this.range.to = this.$route.query.to || dayjs().endOf('month').format('YYYY-MM-DD')
-
-    const categoryFilters = this.$route.query.categories
-    if (categoryFilters) {
-      this.categoryFilters = categoryFilters.split(",").map(it => parseInt(it))
-    }
-
-    const tagFilters = this.$route.query.tags
-    if (tagFilters) {
-      this.tagFilters = tagFilters.split(",").map(it => parseInt(it))
-    }
-
-    const accountFilters = this.$route.query.accounts
-    if (accountFilters) {
-      this.accountFilters = accountFilters.split(",").map(it => parseInt(it))
-    }
-
-    this.refreshStatements()
+    this.$store.commit('initializeStatementFilters')
+    this.range = this.$store.state.statementFilters.range
+    this.categoryFilters = this.$store.state.statementFilters.categories
+    this.tagFilters = this.$store.state.statementFilters.tags
+    this.accountFilters = this.$store.state.statementFilters.accounts
+    this.refreshEverything()
   },
   methods: {
-    refreshStatements() {
+    refreshEverything() {
       this.$store.dispatch('fetchAccounts')
       this.$store.dispatch('fetchCategories')
       this.$store.dispatch('fetchTags')
+      this.refreshStatements()
+    },
+    refreshStatements() {
       this.$store.dispatch('fetchStatements', { from: this.range.from, to: this.range.to })
     },
     showModal(statement) {
@@ -531,7 +522,7 @@ export default {
         this.categoryFilters = []
       }
 
-      this.updateQueryParams()
+      this.updateStatementFilters()
     },
     isTagFilterActive(id) {
       return this.tagFilters.includes(id)
@@ -543,7 +534,7 @@ export default {
         this.tagFilters = [...this.tagFilters, id]
       }
 
-      this.updateQueryParams()
+      this.updateStatementFilters()
     },
     isAccountFilterActive(id) {
       return this.accountFilters.includes(id)
@@ -555,18 +546,17 @@ export default {
         this.accountFilters = [...this.accountFilters, id]
       }
 
-      this.updateQueryParams()
+      this.updateStatementFilters()
     },
-    updateQueryParams() {
-      this.$router.push({
-        path: '/statements',
-        query: {
+    updateStatementFilters() {
+      this.$store.commit('setStatementFilters', {
+        range: {
           from: this.range.from,
           to: this.range.to,
-          categories: this.categoryFilters.join(','),
-          tags: this.tagFilters.join(','),
-          accounts: this.accountFilters.join(',')
-        }
+        },
+        categories: this.categoryFilters,
+        tags: this.tagFilters,
+        accounts: this.accountFilters
       })
     },
     getCategoryStatements(category) {
@@ -586,7 +576,7 @@ export default {
     },
     applyPatterns() {
       this.$store.dispatch('applyPatterns').then(() => {
-        this.refreshStatements()
+        this.refreshEverything()
       })
     },
     isTagActive(statement, id) {
@@ -594,11 +584,11 @@ export default {
     },
     clearTagFilters() {
       this.tagFilters = []
-      this.updateQueryParams()
+      this.updateStatementFilters()
     },
     clearAccountFilters() {
       this.accountFilters = []
-      this.updateQueryParams()
+      this.updateStatementFilters()
     }
   }
 }

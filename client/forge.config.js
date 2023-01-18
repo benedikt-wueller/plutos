@@ -1,5 +1,9 @@
 module.exports = {
-  packagerConfig: {},
+  packagerConfig: {
+    extraResource: [
+        '../build/plutos/plutos.jar'
+    ]
+  },
   rebuildConfig: {},
   makers: [
     {

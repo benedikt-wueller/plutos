@@ -8,7 +8,7 @@
       There are no tags yet.
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
       <card v-for="tag in tags"
             v-bind:key="'tag-' + tag.id"
             :name="tag.attributes.name"
@@ -32,7 +32,7 @@
     </div>
 
     <h1 class="text-2xl font-semibold mb-4">Actions</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
       <card name="Add Tag" icon="fa-solid fa-plus" class="bg-green-100 hover:bg-green-200 cursor-pointer" @click="showModal(null)">
         <div class="mt-2">
           Create a new tag.

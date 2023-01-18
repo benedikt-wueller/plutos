@@ -61,3 +61,18 @@ tasks.shadowJar {
     this.archiveClassifier.set("")
     this.archiveVersion.set("")
 }
+
+tasks {
+    val buildClient = register<Exec>("buildClient") {
+        // TODO: make this task platform agnostic
+        this.workingDir("client")
+        commandLine("cmd", "/c", "npm run release")
+    }
+    val copyClient = register<Copy>("copyClient") {
+        from("client/out")
+        into("out")
+    }
+    register<GradleBuild>("plutos") {
+        tasks = listOf(shadowJar.name, buildClient.name, copyClient.name)
+    }
+}

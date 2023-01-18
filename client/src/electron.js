@@ -1,14 +1,6 @@
-const { app, BrowserWindow, dialog } = require("electron");
-const path = require("path");
-const { spawn } = require('node:child_process');
-
-const plutos = spawn('java', ['-jar', 'plutos.jar']);
-
-plutos.on('close', (code) => {
-    app.exit(0)
-})
-
-await new Promise(resolve => setTimeout(resolve, 2500))
+const { app, BrowserWindow, dialog } = require("electron")
+const path = require("path")
+const { spawn } = require('node:child_process')
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -18,20 +10,22 @@ function createWindow() {
             preload: path.join(__dirname, "preload.js"),
         },
     });
-    win.loadFile("dist/index.html");
+    win.loadFile("dist/index.html")
 }
+
+const plutosBackend = spawn('java', ['-jar', 'resources/plutos.jar'])
+plutosBackend.on('close', (code) => {
+    app.exit(0)
+})
+
 app.whenReady().then(() => {
-    createWindow();
+    createWindow()
 
     app.on("activate", () => {
         if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
+            createWindow()
         }
-    });
-});
-
-app.on('before-quit', e => {
-    dialog.showMessageBoxSync({ message: JSON.stringify(e) })
+    })
 })
 
 app.on('window-all-closed', () => {

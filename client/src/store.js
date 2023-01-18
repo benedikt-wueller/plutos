@@ -1,11 +1,23 @@
 import { createStore } from 'vuex'
 import axios from "axios";
+import dayjs from "dayjs";
 
 const store = {
     state() {
         return {
             // Basics
             baseUrl: 'http://localhost:8143/api/v1',
+
+            // Filters
+            statementFilters: {
+                range: {
+                    from: dayjs().startOf("month").format('YYYY-MM-DD'),
+                    to: dayjs().endOf("month").format('YYYY-MM-DD')
+                },
+                accounts: [],
+                categories: [],
+                tags: [],
+            },
 
             // Util
             loading: 0,
@@ -22,6 +34,22 @@ const store = {
         }
     },
     mutations: {
+        initializeStatementFilters(state) {
+            const filters = localStorage.getItem('statementFilters')
+            if (!filters) return
+            state.statementFilters = JSON.parse(filters)
+        },
+
+        setStatementFilters(state, payload) {
+            state.statementFilters = {
+                range: payload.range,
+                accounts: payload.accounts,
+                categories: payload.categories,
+                tags: payload.tags
+            }
+            localStorage.setItem('statementFilters', JSON.stringify(state.statementFilters))
+        },
+
         incrementLoading(state) {
             state.loading += 1
         },

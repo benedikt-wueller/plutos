@@ -12,10 +12,10 @@ fun main() {
 
     // Stop server if no client is connected.
     GlobalScope.launch {
-        delay(10000)
+        delay(10000L)
         while (true) {
-            if (System.currentTimeMillis() - WebServer.lastPing > 10000) break
-            delay(1000)
+            if (System.currentTimeMillis() - WebServer.lastPing > 10000L) break
+            delay(1000L)
         }
         WebServer.stop()
     }

@@ -3,7 +3,7 @@
     <breadcrumbs :breadcrumbs="[{ name: 'Categories', 'path': '/categories' }]"></breadcrumbs>
 
     <h1 class="text-2xl font-semibold mb-4">Categories & Budgets</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
       <card v-for="category in categories"
             v-bind:key="'category-' + category.id"
             class="hover:bg-gray-100 cursor-pointer"
@@ -23,23 +23,26 @@
             <p>{{ category.relationships.patterns.data.length }}</p>
           </div>
           <div>
-            <p class="font-semibold">Default</p>
-            <p>{{ category.attributes.default ? 'Yes' : 'No' }}</p>
+            <p class="font-semibold">Tags</p>
+            <p>{{ category.relationships.tags.data.length }}</p>
           </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 mt-2">
           <div>
             <p class="font-semibold">Statements</p>
             <p>{{ category.relationships.statements.data.length }}</p>
           </div>
           <div>
-            <p class="font-semibold">Tags</p>
-            <p>{{ category.relationships.tags.data.length }}</p>
+            <p class="font-semibold">Default</p>
+            <p>{{ category.attributes.default ? 'Yes' : 'No' }}</p>
           </div>
         </div>
       </card>
     </div>
 
     <h1 class="text-2xl font-semibold mb-4">Actions</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
       <card name="Add Category" icon="fa-solid fa-plus" class="bg-green-100 hover:bg-green-200 cursor-pointer" @click="showModal(null)">
         <div class="mt-2">
           Create a new category with optional budget.
