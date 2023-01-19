@@ -13,14 +13,13 @@ object DatabaseService {
 
     fun setup() = transaction {
         SchemaUtils.createMissingTablesAndColumns(
-            Categories,
-            Accounts,
-            Statements,
             Patterns,
             Categories,
             CategoryPatterns,
             Tags,
             TagPatterns,
+            Accounts,
+            Statements,
             StatementTags
         )
 
@@ -30,7 +29,7 @@ object DatabaseService {
     private fun createDefaultCategories() {
         val exists = Categories.select { Categories.default eq true }.any()
         if (exists) return
-        Categories.insert(Model(Category.type, null, Category("Other", "#E5E7EB", "#000000", null, true)))
+        Categories.insert(Model(Category.type, null, Category("Other", "#E5E7EB", "#000000", null, true, "")))
     }
 
 }

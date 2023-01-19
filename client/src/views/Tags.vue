@@ -14,6 +14,10 @@
             :name="tag.attributes.name"
             class="hover:bg-gray-100 cursor-pointer"
             @click="showModal(tag)">
+        <div v-if="tag.attributes.description" class="mt-2 text-gray-500">
+          {{ tag.attributes.description }}
+        </div>
+
         <div class="mt-2 grid grid-cols-2 gap-2">
           <div>
             <p class="font-semibold">Patterns</p>
@@ -46,7 +50,7 @@
         <input type="text" class="rounded-md w-full" placeholder="Name" v-model="selectedTag.attributes.name">
       </div>
 
-      <div class="mt-4">
+      <div class="mt-2">
         <div class="font-semibold">Category</div>
         <select class="rounded-md w-full mt-2" ref="categorySelector">
           <option value="-1" :selected="!selectedTag.relationships.category.data">None</option>
@@ -59,7 +63,7 @@
         </select>
       </div>
 
-      <div class="mt-4 grid grid-cols-2 gap-4">
+      <div class="mt-2 grid grid-cols-2 gap-4">
         <div>
           <div class="font-semibold">Background Color</div>
           <input type="color" class="rounded-md w-full p-1 h-10" v-model="selectedTag.attributes.color">
@@ -68,6 +72,11 @@
           <div class="font-semibold">Text Color</div>
           <input type="color" class="rounded-md w-full p-1 h-10" v-model="selectedTag.attributes.textColor">
         </div>
+      </div>
+
+      <div class="mt-2">
+        <div class="font-semibold">Description</div>
+        <textarea v-model="selectedTag.attributes.description" class="rounded-md w-full"></textarea>
       </div>
 
       <div class="mt-4 pt-4 border-t-2 flex gap-2 flex">
@@ -121,7 +130,8 @@ export default {
           attributes: {
             name: 'New Tag',
             color: '#E5E7EB',
-            textColor: '#000000'
+            textColor: '#000000',
+            description: ''
           },
           relationships: {
             category: {

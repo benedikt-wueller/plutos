@@ -13,6 +13,10 @@
           <span class="text-gray-400" v-if="category.attributes.default"> (Default)</span>
         </div>
 
+        <div v-if="category.attributes.description" class="mt-2 text-gray-500">
+          {{ category.attributes.description }}
+        </div>
+
         <div class="grid grid-cols-3 gap-2 mt-2">
           <div>
             <p class="font-semibold">Limit</p>
@@ -56,12 +60,12 @@
         <input type="text" class="rounded-md w-full" placeholder="Name" v-model="selectedCategory.attributes.name">
       </div>
 
-      <div class="mt-4">
+      <div class="mt-2">
         <div class="font-semibold">Budget / Limit</div>
         <input type="number" min="0" class="rounded-md w-full" placeholder="No Limit" v-model="selectedCategory.attributes.limit">
       </div>
 
-      <div class="mt-4">
+      <div class="mt-2">
         <div class="form-check">
           <input v-model="selectedCategory.attributes.default"
                  :disabled="selectedCategory.id && $store.state.categories[selectedCategory.id].attributes.default"
@@ -74,7 +78,7 @@
         </div>
       </div>
 
-      <div class="mt-4 grid grid-cols-2 gap-4">
+      <div class="mt-2 grid grid-cols-2 gap-4">
         <div>
           <div class="font-semibold">Background Color</div>
           <input type="color" class="rounded-md w-full p-1 h-10" v-model="selectedCategory.attributes.color">
@@ -83,6 +87,11 @@
           <div class="font-semibold">Text Color</div>
           <input type="color" class="rounded-md w-full p-1 h-10" v-model="selectedCategory.attributes.textColor">
         </div>
+      </div>
+
+      <div class="mt-2">
+        <div class="font-semibold">Description</div>
+        <textarea v-model="selectedCategory.attributes.description" class="rounded-md w-full"></textarea>
       </div>
 
       <div class="mt-4 pt-4 border-t-2 flex gap-2 flex">
@@ -135,6 +144,7 @@ export default {
             textColor: '#000000',
             limit: null,
             default: false,
+            description: ''
           }
         }
       } else {

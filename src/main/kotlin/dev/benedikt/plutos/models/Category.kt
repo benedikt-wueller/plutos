@@ -12,7 +12,14 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 
 @Serializable
-data class Category(val name: String, val color: String, val textColor: String, val limit: Double?, val default: Boolean) : Resource {
+data class Category(
+    val name: String,
+    val color: String,
+    val textColor: String,
+    val limit: Double?,
+    val default: Boolean,
+    val description: String,
+) : Resource {
     companion object { const val type = "categories" }
 }
 
@@ -22,6 +29,7 @@ object Categories : IntIdTable() {
     val textColor = varchar("text_color", 7)
     val limit = double("limit").nullable()
     val default = bool("default")
+    val description = text("description").nullable()
 }
 
 fun ResultRow.toCategory() = Model(
@@ -32,7 +40,8 @@ fun ResultRow.toCategory() = Model(
         color = this[Categories.color],
         textColor = this[Categories.textColor],
         limit = this[Categories.limit],
-        default = this[Categories.default]
+        default = this[Categories.default],
+        description = this[Categories.description] ?: ""
     )
 )
 
@@ -43,6 +52,7 @@ fun Categories.insert(category: Model<Category>) : Model<Category> {
         it[textColor] = category.attributes.textColor
         it[limit] = category.attributes.limit
         it[default] = category.attributes.default
+        it[description] = category.attributes.description
     }
     return category.copy(id = id.value)
 }
@@ -54,6 +64,7 @@ fun Categories.update(category: Model<Category>) : Boolean {
         it[textColor] = category.attributes.textColor
         it[limit] = category.attributes.limit
         it[default] = category.attributes.default
+        it[description] = category.attributes.description
     } > 0
 }
 
