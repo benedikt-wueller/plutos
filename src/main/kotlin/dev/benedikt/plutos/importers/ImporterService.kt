@@ -7,6 +7,7 @@ object ImporterService {
     private val importers = mutableMapOf<String, Importer>()
 
     init {
+        register(PayPalImporter())
         register(SparkasseImporter())
         register(CommerzbankImporter())
         register(CommerzbankCreditCardImporter())

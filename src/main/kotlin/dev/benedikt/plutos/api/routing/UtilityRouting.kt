@@ -44,6 +44,7 @@ fun Route.utilityRouting() {
                         subclass(CommerzbankCreditCardImporter::class)
                         subclass(AmazonLBBImporter::class)
                         subclass(RevolutImporter::class)
+                        subclass(PayPalImporter::class)
                     }
                 }
             }.encodeToString(ImporterService.all())
