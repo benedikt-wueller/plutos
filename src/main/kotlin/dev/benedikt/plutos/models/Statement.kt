@@ -4,6 +4,7 @@ import dev.benedikt.plutos.api.structure.Resource
 import dev.benedikt.plutos.api.structure.ResourceObject
 import dev.benedikt.plutos.api.structure.ResourceObjectBuilder
 import dev.benedikt.plutos.models.Categories.default
+import dev.benedikt.plutos.models.StatementTags.statementId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.jetbrains.exposed.dao.id.IntIdTable
@@ -40,6 +41,7 @@ data class Statement(
     @Transient var idHash: String? = null
     @Transient var contentHash: String? = null
     @Transient var manualCategory: Boolean? = false
+    @Transient var manualTags: Boolean? = false
 
     val contentValues get() = arrayOf(
         bookingDate, valueDate, type, amount, currency, purpose, creditorId, mandateReference,
@@ -86,6 +88,7 @@ object Statements : IntIdTable() {
     val idHash = varchar("id_hash", 32).uniqueIndex()
     val contentHash = varchar("content_hash", 32)
     val manualCategory = bool("manual_category").default(false)
+    val manualTags = bool("manual_tags").default(false)
 }
 
 fun ResultRow.toStatement(): Model<Statement> {
@@ -111,6 +114,7 @@ fun ResultRow.toStatement(): Model<Statement> {
     statement.idHash = this[Statements.idHash]
     statement.contentHash = this[Statements.contentHash]
     statement.manualCategory = this[Statements.manualCategory]
+    statement.manualTags = this[Statements.manualTags]
 
     return Model(
         id = this[Statements.id].value,
@@ -141,6 +145,7 @@ fun Statements.insert(entity: Model<Statement>) : Model<Statement> {
         it[idHash] = attributes.idHash!!
         it[contentHash] = attributes.contentHash!!
         it[manualCategory] = attributes.manualCategory!!
+        it[manualTags] = attributes.manualTags!!
     }
     return entity.copy(id = id.value)
 }
@@ -167,6 +172,7 @@ fun Statements.update(entity: Model<Statement>) : Boolean {
         it[idHash] = attributes.idHash!!
         it[contentHash] = attributes.contentHash!!
         it[manualCategory] = attributes.manualCategory!!
+        it[manualTags] = attributes.manualTags!!
     } > 0
 }
 
@@ -194,12 +200,14 @@ fun applyCategoryAndTags(statements: List<Model<Statement>>) {
 
     val categoryIds = Categories.slice(Categories.id).selectAll().map { it[Categories.id].value }
 
-    StatementTags.deleteWhere { manual eq false }
     statements.forEach { statement ->
-        val tagIds = determineTagIds(statement.attributes, tagPatterns)
-        val manualTagIds = StatementTags.slice(StatementTags.tagId).select { StatementTags.statementId eq statement.id }.map { it[StatementTags.tagId].value }
+        val newTagIds = if (statement.attributes.manualTags == true) {
+            listOf()
+        } else {
+            StatementTags.deleteWhere { statementId eq statement.id }
+            determineTagIds(statement.attributes, tagPatterns)
+        }
 
-        val newTagIds = tagIds.filter { !manualTagIds.contains(it) }
         newTagIds.forEach { id ->
             StatementTags.insert {
                 it[tagId] = id
@@ -209,8 +217,8 @@ fun applyCategoryAndTags(statements: List<Model<Statement>>) {
 
         if (statement.attributes.manualCategory == true && categoryIds.contains(statement.attributes.categoryId)) return@forEach
 
-        val allTagIds = tagIds.union(manualTagIds).distinct()
-        val selectedTags = tags.filter { allTagIds.contains(it.id) }
+        val tagIds = StatementTags.select { statementId eq statement.id }.map { it[StatementTags.tagId].value }
+        val selectedTags = tags.filter { tagIds.contains(it.id) }
         val preferredCategoryIds = selectedTags.mapNotNull { it.attributes.categoryId }
 
         val categoryId = determineCategoryId(statement.attributes, categoryPatterns, defaultCategoryId, preferredCategoryIds)
@@ -240,16 +248,7 @@ fun determineCategoryId(statement: Statement, patterns: List<Model<CategoryPatte
     val matches = mutableMapOf<Int, Int>()
 
     patterns.forEach { pattern ->
-        val regex = Regex(pattern.attributes.regex)
-        val values = getContentValues(statement, pattern.attributes)
-        val matching = values.any {
-            when (pattern.attributes.matchMode) {
-                MatchMode.PARTIAL_MATCH, MatchMode.NO_PARTIAL_MATCH -> regex.containsMatchIn(it)
-                MatchMode.FULL_MATCH, MatchMode.NO_FULL_MATCH -> regex.matches(it)
-            }
-        }
-
-        if (!matching) return@forEach
+        if (!isMatching(statement, pattern.attributes)) return@forEach
         if (pattern.attributes.matchMode == MatchMode.NO_PARTIAL_MATCH || pattern.attributes.matchMode == MatchMode.NO_FULL_MATCH) {
             excludedCategories.add(pattern.attributes.categoryId)
         } else {
@@ -272,16 +271,7 @@ fun determineTagIds(statement: Statement, patterns: List<Model<TagPattern>>) : L
     val matchedIds = mutableSetOf<Int>()
 
     patterns.forEach { pattern ->
-        val regex = Regex(pattern.attributes.regex)
-        val values = getContentValues(statement, pattern.attributes)
-        val matching = values.any {
-            when (pattern.attributes.matchMode) {
-                MatchMode.PARTIAL_MATCH, MatchMode.NO_PARTIAL_MATCH -> regex.containsMatchIn(it)
-                MatchMode.FULL_MATCH, MatchMode.NO_FULL_MATCH -> regex.matches(it)
-            }
-        }
-
-        if (!matching) return@forEach
+        if (!isMatching(statement, pattern.attributes)) return@forEach
         if (pattern.attributes.matchMode == MatchMode.NO_PARTIAL_MATCH || pattern.attributes.matchMode == MatchMode.NO_FULL_MATCH) {
             excludedIds.add(pattern.attributes.tagId)
         } else {
@@ -292,7 +282,24 @@ fun determineTagIds(statement: Statement, patterns: List<Model<TagPattern>>) : L
     return matchedIds.filter { !excludedIds.contains(it) }
 }
 
+private fun isMatching(statement: Statement, pattern: Pattern) : Boolean {
+    val regex = Regex(pattern.regex)
+    val values = getContentValues(statement, pattern)
+    return values.any {
+        when (pattern.matchMode) {
+            MatchMode.PARTIAL_MATCH, MatchMode.NO_PARTIAL_MATCH -> regex.containsMatchIn(it)
+            MatchMode.FULL_MATCH, MatchMode.NO_FULL_MATCH -> regex.matches(it)
+        }
+    }
+}
+
 private fun getContentValues(statement: Statement, pattern: Pattern) : List<String> {
-    if (pattern.matchTargets.isEmpty()) return statement.contentValues
-    return pattern.matchTargets.map { it.property.get(statement).toString() }
+    val targets = pattern.matchTargets.ifEmpty { MatchTarget.values().toList() }
+    return targets.map { it.property.get(statement).toString() }.map {
+        if (pattern.squishData) {
+            it.replace(" ", "")
+        } else {
+            it
+        }
+    }
 }

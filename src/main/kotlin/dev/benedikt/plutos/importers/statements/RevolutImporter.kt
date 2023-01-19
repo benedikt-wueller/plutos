@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter
 
 @Serializable
 class RevolutImporter : StatementImporter(
-    "Revolut Export (CSV)", "revolut_csv", "text/csv",
+    "Revolut (CSV)", "revolut_csv", "text/csv",
     listOf(ParameterDefinition("account", "account", "Account"))
 ) {
     override fun readStatements(inputStream: InputStream, parameters: Map<String, String>): List<ImportStatement> {

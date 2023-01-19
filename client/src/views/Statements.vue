@@ -309,13 +309,6 @@ export default {
           ]
         },
         {
-          label: 'Last Month',
-          atClick: () => [
-            dayjs().subtract(1, 'month').startOf('month').format('YYYY-MM-DD'),
-            dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD')
-          ]
-        },
-        {
           label: '30 Days',
           atClick: () => [
             dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
@@ -323,24 +316,45 @@ export default {
           ]
         },
         {
-          label: '2 Months',
+          label: '60 Days',
           atClick: () => [
-            dayjs().subtract(2, 'month').startOf('month').format('YYYY-MM-DD'),
-            dayjs().endOf('month').format('YYYY-MM-DD')
+            dayjs().subtract(60, 'days').startOf('month').format('YYYY-MM-DD'),
+            dayjs().format('YYYY-MM-DD')
           ]
         },
         {
-          label: '3 Months',
+          label: '90 Days',
           atClick: () => [
-            dayjs().subtract(3, 'month').startOf('month').format('YYYY-MM-DD'),
-            dayjs().endOf('month').format('YYYY-MM-DD')
+            dayjs().subtract(90, 'days').startOf('month').format('YYYY-MM-DD'),
+            dayjs().format('YYYY-MM-DD')
           ]
         },
         {
-          label: '6 Months',
+          label: '180 Days',
+          atClick: () => [
+            dayjs().subtract(180, 'days').startOf('month').format('YYYY-MM-DD'),
+            dayjs().format('YYYY-MM-DD')
+          ]
+        },
+        {
+          label: 'Last Month',
+          atClick: () => [
+            dayjs().subtract(1, 'month').startOf('month').format('YYYY-MM-DD'),
+            dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD')
+          ]
+        },
+        {
+          label: 'Last 3 Months',
           atClick: () => [
             dayjs().subtract(3, 'month').startOf('month').format('YYYY-MM-DD'),
-            dayjs().endOf('month').format('YYYY-MM-DD')
+            dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD')
+          ]
+        },
+        {
+          label: 'Last 6 Months',
+          atClick: () => [
+            dayjs().subtract(6, 'month').startOf('month').format('YYYY-MM-DD'),
+            dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD')
           ]
         },
         {

@@ -26,7 +26,7 @@ private val dateTimeFormatter = DateTimeFormatterBuilder()
 
 @Serializable
 class AmazonLBBImporter : StatementImporter(
-    "Amazon LBB Export (CSV)", "amazon_lbb_csv", "text/csv",
+    "Amazon LBB (CSV)", "amazon_lbb_csv", "text/csv",
     listOf(ParameterDefinition("account", "account", "Account"))
 ) {
 

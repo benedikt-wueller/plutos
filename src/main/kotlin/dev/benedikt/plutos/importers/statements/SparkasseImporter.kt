@@ -26,7 +26,7 @@ private val dateTimeFormatterV8 = DateTimeFormatterBuilder()
     .toFormatter()
 
 @Serializable
-class SparkasseImporter : StatementImporter("Sparkasse Export (CSV-CAMT V2/V8)", "sparkasse_csv_camt", "text/csv") {
+class SparkasseImporter : StatementImporter("Sparkasse (CSV-CAMT V2/V8)", "sparkasse_csv_camt", "text/csv") {
 
     override fun readStatements(inputStream: InputStream, parameters: Map<String, String>): List<ImportStatement> {
         val rows = csvReader { this.delimiter = ';' }.readAll(inputStream)

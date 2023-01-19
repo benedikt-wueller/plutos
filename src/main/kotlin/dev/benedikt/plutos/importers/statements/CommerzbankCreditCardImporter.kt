@@ -18,7 +18,7 @@ private val dateTimeFormatter = DateTimeFormatterBuilder()
     .toFormatter()
 
 @Serializable
-class CommerzbankCreditCardImporter : StatementImporter("Commerzbank Credit Card Export (CSV)", "commerzbank_cc_csv", "text/csv") {
+class CommerzbankCreditCardImporter : StatementImporter("Commerzbank Credit Card (CSV)", "commerzbank_cc_csv", "text/csv") {
 
     override fun readStatements(inputStream: InputStream, parameters: Map<String, String>): List<ImportStatement> {
         val rows = csvReader { delimiter = ';' }.readAll(inputStream)

@@ -54,7 +54,7 @@
                type="checkbox"
                id="flexCheckDefault1">
         <label class="form-check-label inline-block text-gray-800" for="flexCheckDefault1">
-          Remove all whitespaces before applying pattern.
+          Remove all whitespaces before applying the pattern.
         </label>
       </div>
     </div>
