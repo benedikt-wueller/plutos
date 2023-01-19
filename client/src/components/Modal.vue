@@ -4,7 +4,7 @@
       <div class="shadow-xl mx-auto bg-white w-full md:w-2/3 lg:w-1/2 py-4 px-5 rounded-md max-h-full overflow-y-auto">
         <div class="flex mb-4">
           <div class="text-xl font-semibold flex-grow">{{ title }}</div>
-          <a class="text-xl cursor-pointer text-gray-300 hover:text-gray-500" @click.self="hide">
+          <a class="text-xl cursor-pointer text-gray-300 hover:text-gray-500" @click="hide">
             <font-awesome-icon icon="fa-solid fa-times"></font-awesome-icon>
           </a>
         </div>

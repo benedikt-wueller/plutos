@@ -3,10 +3,7 @@ package dev.benedikt.plutos.api.routing
 import dev.benedikt.plutos.api.WebServer
 import dev.benedikt.plutos.importers.Importer
 import dev.benedikt.plutos.importers.ImporterService
-import dev.benedikt.plutos.importers.statements.AmazonLBBImporter
-import dev.benedikt.plutos.importers.statements.CommerzbankCreditCardImporter
-import dev.benedikt.plutos.importers.statements.CommerzbankImporter
-import dev.benedikt.plutos.importers.statements.SparkasseImporter
+import dev.benedikt.plutos.importers.statements.*
 import dev.benedikt.plutos.models.*
 import io.ktor.http.*
 import io.ktor.http.content.*
@@ -46,6 +43,7 @@ fun Route.utilityRouting() {
                         subclass(CommerzbankImporter::class)
                         subclass(CommerzbankCreditCardImporter::class)
                         subclass(AmazonLBBImporter::class)
+                        subclass(RevolutImporter::class)
                     }
                 }
             }.encodeToString(ImporterService.all())

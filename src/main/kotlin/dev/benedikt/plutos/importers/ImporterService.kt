@@ -1,9 +1,6 @@
 package dev.benedikt.plutos.importers
 
-import dev.benedikt.plutos.importers.statements.AmazonLBBImporter
-import dev.benedikt.plutos.importers.statements.CommerzbankCreditCardImporter
-import dev.benedikt.plutos.importers.statements.CommerzbankImporter
-import dev.benedikt.plutos.importers.statements.SparkasseImporter
+import dev.benedikt.plutos.importers.statements.*
 
 object ImporterService {
 
@@ -14,6 +11,7 @@ object ImporterService {
         register(CommerzbankImporter())
         register(CommerzbankCreditCardImporter())
         register(AmazonLBBImporter())
+        register(RevolutImporter())
     }
 
     private fun register(importer: Importer) {
