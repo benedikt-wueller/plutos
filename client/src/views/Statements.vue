@@ -14,6 +14,10 @@
 
     <h1 class="mt-8 text-2xl font-semibold">Filters</h1>
 
+    <div class="mt-2">
+      <input type="text" placeholder="Search" class="w-full rounded-md" v-model="term" />
+    </div>
+
     <div class="mt-4">
       <h1 class="text-xl font-semibold mb-4"><font-awesome-icon icon="fa-solid fa-coins"></font-awesome-icon> Categories & Budgets</h1>
 
@@ -360,13 +364,17 @@ export default {
       },
       categoryFilters: [],
       tagFilters: [],
-      accountFilters: []
+      accountFilters: [],
+      term: null
     }
   },
   watch: {
     range() {
       this.updateStatementFilters()
       this.refreshStatements()
+    },
+    term() {
+      this.updateStatementFilters()
     }
   },
   computed: {
@@ -395,6 +403,9 @@ export default {
           .filter(it => {
             const accountId = it.relationships.account.data.id
             return this.accountFilters.length === 0 || this.isAccountFilterActive(accountId)
+          })
+          .filter(it => {
+            return !this.term || Object.values(it.attributes).some(it => it.toString().toLowerCase().includes(this.term.toLowerCase()))
           })
     },
     budgetFactor() {
@@ -557,7 +568,8 @@ export default {
         },
         categories: this.categoryFilters,
         tags: this.tagFilters,
-        accounts: this.accountFilters
+        accounts: this.accountFilters,
+        term: this.term
       })
     },
     getCategoryStatements(category) {
