@@ -1,5 +1,6 @@
 package dev.benedikt.plutos.importers
 
+import dev.benedikt.plutos.importers.statements.CommerzbankCreditCardImporter
 import dev.benedikt.plutos.importers.statements.CommerzbankImporter
 import dev.benedikt.plutos.importers.statements.SparkasseImporter
 
@@ -10,6 +11,7 @@ object ImporterService {
     init {
         register(SparkasseImporter())
         register(CommerzbankImporter())
+        register(CommerzbankCreditCardImporter())
     }
 
     private fun register(importer: Importer) {

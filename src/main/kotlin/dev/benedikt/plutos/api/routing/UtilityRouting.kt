@@ -3,6 +3,7 @@ package dev.benedikt.plutos.api.routing
 import dev.benedikt.plutos.api.WebServer
 import dev.benedikt.plutos.importers.Importer
 import dev.benedikt.plutos.importers.ImporterService
+import dev.benedikt.plutos.importers.statements.CommerzbankCreditCardImporter
 import dev.benedikt.plutos.importers.statements.CommerzbankImporter
 import dev.benedikt.plutos.importers.statements.SparkasseImporter
 import dev.benedikt.plutos.models.*
@@ -41,6 +42,7 @@ fun Route.utilityRouting() {
                     polymorphic(Importer::class) {
                         subclass(SparkasseImporter::class)
                         subclass(CommerzbankImporter::class)
+                        subclass(CommerzbankCreditCardImporter::class)
                     }
                 }
             }.encodeToString(ImporterService.all())
