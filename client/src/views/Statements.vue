@@ -366,6 +366,7 @@ export default {
   watch: {
     range() {
       this.updateStatementFilters()
+      this.refreshStatements()
     }
   },
   computed: {
