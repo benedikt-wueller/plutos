@@ -23,8 +23,9 @@ class TagPattern : Pattern {
         regex: String,
         matchMode: MatchMode,
         matchTargets: List<MatchTarget>,
+        accountTargets: List<Int>,
         squishData: Boolean
-    ) : super(name, regex, matchMode, matchTargets, squishData)
+    ) : super(name, regex, matchMode, matchTargets, accountTargets, squishData)
 }
 
 object TagPatterns : IntIdTable() {
@@ -40,6 +41,7 @@ fun ResultRow.toTagPattern() = Model(
         regex = this[Patterns.regex],
         matchMode = this[Patterns.matchMode],
         matchTargets = this[Patterns.matchTargets]?.split(",")?.map(MatchTarget::valueOf) ?: listOf(),
+        accountTargets = this[Patterns.accountTargets]?.split(",")?.map(String::toInt) ?: listOf(),
         squishData = this[Patterns.squishData]
     ).also {
         it.patternId = this[Patterns.id].value
@@ -55,6 +57,7 @@ fun Model<Pattern>.toTagPattern(patternId: Int, tagId: Int) = Model(
         regex = this.attributes.regex,
         matchMode = this.attributes.matchMode,
         matchTargets = this.attributes.matchTargets,
+        accountTargets = this.attributes.accountTargets,
         squishData = this.attributes.squishData
     ).also {
         it.patternId = patternId
@@ -75,6 +78,7 @@ fun Patterns.insertTagPattern(pattern: Model<TagPattern>, tagId: Int) : Model<Ta
         pattern.attributes.regex,
         pattern.attributes.matchMode,
         pattern.attributes.matchTargets,
+        pattern.attributes.accountTargets,
         pattern.attributes.squishData
     )
 

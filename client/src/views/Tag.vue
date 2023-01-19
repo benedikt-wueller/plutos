@@ -66,6 +66,7 @@ export default {
     this.id = this.$route.params['tagId']
     this.$store.dispatch('loadTag', { id: this.id })
     this.$store.dispatch('fetchTagPatterns', { id: this.id })
+    this.$store.dispatch('fetchAccounts')
   },
   methods: {
     hideModal() {
@@ -79,6 +80,7 @@ export default {
             regex: '.*',
             matchMode: 'PARTIAL_MATCH',
             matchTargets: [],
+            accountTargets: [],
             squishData: false
           }
         }

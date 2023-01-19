@@ -247,7 +247,9 @@ fun determineCategoryId(statement: Statement, patterns: List<Model<CategoryPatte
     val excludedCategories = mutableSetOf<Int>()
     val matches = mutableMapOf<Int, Int>()
 
-    patterns.forEach { pattern ->
+    patterns.filter { pattern ->
+        pattern.attributes.accountTargets.isEmpty() || pattern.attributes.accountTargets.contains(statement.accountId)
+    }.forEach { pattern ->
         if (!isMatching(statement, pattern.attributes)) return@forEach
         if (pattern.attributes.matchMode == MatchMode.NO_PARTIAL_MATCH || pattern.attributes.matchMode == MatchMode.NO_FULL_MATCH) {
             excludedCategories.add(pattern.attributes.categoryId)
@@ -270,7 +272,9 @@ fun determineTagIds(statement: Statement, patterns: List<Model<TagPattern>>) : L
     val excludedIds = mutableSetOf<Int>()
     val matchedIds = mutableSetOf<Int>()
 
-    patterns.forEach { pattern ->
+    patterns.filter { pattern ->
+        pattern.attributes.accountTargets.isEmpty() || pattern.attributes.accountTargets.contains(statement.accountId)
+    }.forEach { pattern ->
         if (!isMatching(statement, pattern.attributes)) return@forEach
         if (pattern.attributes.matchMode == MatchMode.NO_PARTIAL_MATCH || pattern.attributes.matchMode == MatchMode.NO_FULL_MATCH) {
             excludedIds.add(pattern.attributes.tagId)

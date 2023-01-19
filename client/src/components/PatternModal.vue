@@ -47,6 +47,25 @@
     </div>
 
     <div clasS="mt-2">
+      <div class="font-semibold">Match Accounts</div>
+      <div class="form-check">
+        <input v-model="matchAllAccounts"
+               class="form-check-input appearance-none h-4 w-4 border border-gray-300 rounded-sm bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 mt-1 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
+               type="checkbox"
+               id="flexCheckDefault2">
+        <label class="form-check-label inline-block text-gray-800" for="flexCheckDefault2">
+          Match pattern for all accounts
+        </label>
+      </div>
+      <select v-show="!matchAllAccounts" class="rounded-md w-full" multiple ref="matchAccounts">
+        <option v-for="account in accounts"
+                v-bind:key="'match-account-' + account.id"
+                :selected="selectedPattern.attributes.accountTargets.includes(account.id)"
+                :value="account.id">{{ account.attributes.name }}</option>
+      </select>
+    </div>
+
+    <div clasS="mt-2">
       <div class="font-semibold">Squish Data</div>
       <div class="form-check">
         <input v-model="selectedPattern.attributes.squishData"
@@ -117,12 +136,20 @@ export default {
           name: 'Third Party Bank Code',
           key: 'THIRD_PARTY_BANK_CODE'
         }
-      ]
+      ],
+      matchAllAccounts: true,
+      matchAccounts: []
     }
   },
   watch: {
     selectedPattern() {
       this.matchAll = this.selectedPattern && (!this.selectedPattern.attributes.matchTargets || this.selectedPattern.attributes.matchTargets.length <= 0)
+      this.matchAllAccounts = this.selectedPattern && (!this.selectedPattern.attributes.accountTargets || this.selectedPattern.attributes.accountTargets.length <= 0)
+    }
+  },
+  computed: {
+    accounts() {
+      return this.$store.getters.getAccounts()
     }
   },
   methods: {
@@ -133,6 +160,11 @@ export default {
       this.selectedPattern.attributes.matchTargets = !this.matchAll
           ? Array.from(this.$refs.matchTargets.options).filter(it => it.selected).map(it => it.value)
           : []
+
+      this.selectedPattern.attributes.accountTargets = !this.matchAllAccounts
+          ? Array.from(this.$refs.matchAccounts.options).filter(it => it.selected).map(it => it.value)
+          : []
+
       this.$emit('submit')
     },
     hideModal() {

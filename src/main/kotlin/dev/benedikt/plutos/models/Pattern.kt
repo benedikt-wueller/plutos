@@ -3,7 +3,6 @@ package dev.benedikt.plutos.models
 import dev.benedikt.plutos.api.structure.Resource
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insertAndGetId
 import org.jetbrains.exposed.sql.update
 import kotlin.reflect.KProperty1
@@ -32,6 +31,7 @@ open class Pattern(
     val regex: String,
     val matchMode: MatchMode,
     val matchTargets: List<MatchTarget>,
+    val accountTargets: List<Int>,
     val squishData: Boolean,
 ) : Resource {
     companion object { const val type = "patterns" }
@@ -43,6 +43,7 @@ object Patterns : IntIdTable() {
     val matchMode = enumeration<MatchMode>("match_mode")
     val matchTargets = text("match_targets").nullable().default(null)
     val squishData = bool("squish_data").default(false)
+    val accountTargets = text("account_targets").nullable().default(null)
 }
 
 fun Patterns.insertPattern(pattern: Model<out Pattern>) : Model<out Pattern> {
@@ -52,6 +53,7 @@ fun Patterns.insertPattern(pattern: Model<out Pattern>) : Model<out Pattern> {
         it[matchMode] = pattern.attributes.matchMode
         it[matchTargets] = pattern.attributes.matchTargets.let { target -> if (target.any()) target else null }?.joinToString(",") { option -> option.toString() }
         it[squishData] = pattern.attributes.squishData
+        it[accountTargets] = pattern.attributes.accountTargets.let { account -> if (account.any()) account else null }?.joinToString(",") { option -> option.toString() }
     }
     return pattern.copy(id = id.value)
 }
@@ -63,5 +65,6 @@ fun Patterns.updatePattern(pattern: Model<out Pattern>) : Boolean {
         it[matchMode] = pattern.attributes.matchMode
         it[matchTargets] = pattern.attributes.matchTargets.let { target -> if (target.any()) target else null }?.joinToString(",") { option -> option.toString() }
         it[squishData] = pattern.attributes.squishData
+        it[accountTargets] = pattern.attributes.accountTargets.let { account -> if (account.any()) account else null }?.joinToString(",") { option -> option.toString() }
     } > 0
 }

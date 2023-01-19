@@ -77,6 +77,7 @@ export default {
     this.id = this.$route.params['categoryId']
     this.$store.dispatch('loadCategory', { id: this.id })
     this.$store.dispatch('fetchCategoryPatterns', { id: this.id })
+    this.$store.dispatch('fetchAccounts')
   },
   methods: {
     hideModal() {
@@ -90,6 +91,7 @@ export default {
             regex: '.*',
             matchMode: 'PARTIAL_MATCH',
             matchTargets: [],
+            accountTargets: [],
             squishData: false
           }
         }
