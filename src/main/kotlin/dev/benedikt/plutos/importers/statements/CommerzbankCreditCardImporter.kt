@@ -1,7 +1,6 @@
 package dev.benedikt.plutos.importers.statements
 
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
-import dev.benedikt.plutos.helpers.condensed
 import dev.benedikt.plutos.helpers.toDoubleInternational
 import dev.benedikt.plutos.models.Statement
 import kotlinx.serialization.Serializable
@@ -21,7 +20,7 @@ private val dateTimeFormatter = DateTimeFormatterBuilder()
 @Serializable
 class CommerzbankCreditCardImporter : StatementImporter("Commerzbank Credit Card Export (CSV)", "commerzbank_cc_csv", "text/csv") {
 
-    override fun readStatements(inputStream: InputStream): List<ImportStatement> {
+    override fun readStatements(inputStream: InputStream, parameters: Map<String, String>): List<ImportStatement> {
         val rows = csvReader { delimiter = ';' }.readAll(inputStream)
         return rows.drop(1).map {
             val valueDate = LocalDate.parse(it[0].trim(), dateTimeFormatter)

@@ -1,6 +1,7 @@
 package dev.benedikt.plutos.importers.statements
 
 import dev.benedikt.plutos.importers.Importer
+import dev.benedikt.plutos.importers.ParameterDefinition
 import dev.benedikt.plutos.models.*
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.*
@@ -12,10 +13,10 @@ data class ImportStatement(val statement: Statement, val accountIdentifier: Stri
 @Serializable
 abstract class StatementImporter : Importer {
 
-    constructor(name: String, key: String, fileFormat: String) : super(name, key, fileFormat)
+    constructor(name: String, key: String, fileFormat: String, parameters: List<ParameterDefinition> = listOf()) : super(name, key, fileFormat, parameters)
 
-    override fun import(inputStream: InputStream) {
-        val statements = this.readStatements(inputStream)
+    override fun import(inputStream: InputStream, parameters: Map<String, String>) {
+        val statements = this.readStatements(inputStream, parameters)
         statements.forEach {
             it.statement.updateIdHash()
             it.statement.updateContentHash()
@@ -96,6 +97,6 @@ abstract class StatementImporter : Importer {
         return mapOf(*accounts.union(newAccounts).map { it.attributes.identifier to it.id!! }.toTypedArray())
     }
 
-    abstract fun readStatements(inputStream: InputStream): List<ImportStatement>
+    abstract fun readStatements(inputStream: InputStream, parameters: Map<String, String>): List<ImportStatement>
 
 }

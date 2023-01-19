@@ -420,6 +420,7 @@ const store = {
 
         importStatements(context, payload) {
             const formData = new FormData()
+            formData.append('params', JSON.stringify(payload.params))
             for (let i = 0; i < payload.files.length; i++) {
                 formData.append('file' + i, payload.files[i])
             }
@@ -616,7 +617,16 @@ const store = {
 
         findCategory: (state) => (id) => state.categories[id],
 
-        getAccounts: (state) => () => Object.values(state.accounts),
+        getAccounts: (state) => () => {
+            const accounts = Object.values(state.accounts)
+            accounts.sort((a, b) => {
+                const nameA = a.attributes.name
+                const nameB = b.attributes.name
+                if (nameA === nameB) return b.id - a.id
+                return nameA < nameB ? -1 : 1;
+            })
+            return accounts
+        },
 
         findAccount: (state) => (id) => state.accounts[id],
 

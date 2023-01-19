@@ -21,7 +21,7 @@ private val dateTimeFormatter = DateTimeFormatterBuilder()
 @Serializable
 class CommerzbankImporter : StatementImporter("Commerzbank Export (CSV)", "commerzbank_csv", "text/csv") {
 
-    override fun readStatements(inputStream: InputStream): List<ImportStatement> {
+    override fun readStatements(inputStream: InputStream, parameters: Map<String, String>): List<ImportStatement> {
         val rows = csvReader { delimiter = ';' }.readAll(inputStream)
         return rows.drop(1).map {
             val body = it[3].trim()

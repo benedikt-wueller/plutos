@@ -3,6 +3,7 @@ package dev.benedikt.plutos.api.routing
 import dev.benedikt.plutos.api.WebServer
 import dev.benedikt.plutos.importers.Importer
 import dev.benedikt.plutos.importers.ImporterService
+import dev.benedikt.plutos.importers.statements.AmazonLBBImporter
 import dev.benedikt.plutos.importers.statements.CommerzbankCreditCardImporter
 import dev.benedikt.plutos.importers.statements.CommerzbankImporter
 import dev.benedikt.plutos.importers.statements.SparkasseImporter
@@ -13,6 +14,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -43,6 +45,7 @@ fun Route.utilityRouting() {
                         subclass(SparkasseImporter::class)
                         subclass(CommerzbankImporter::class)
                         subclass(CommerzbankCreditCardImporter::class)
+                        subclass(AmazonLBBImporter::class)
                     }
                 }
             }.encodeToString(ImporterService.all())
@@ -58,9 +61,15 @@ fun Route.utilityRouting() {
             }
 
             val multipart = call.receiveMultipart()
+            var parameters = mapOf<String, String>()
+
             multipart.forEachPart { part ->
+                if (part is PartData.FormItem && part.name == "params") {
+                    parameters = Json.decodeFromString(part.value)
+                }
+
                 if (part is PartData.FileItem) {
-                    part.streamProvider().use { importer.import(it) }
+                    part.streamProvider().use { importer.import(it, parameters) }
                     call.respond(HttpStatusCode.NoContent)
                 }
                 part.dispose()

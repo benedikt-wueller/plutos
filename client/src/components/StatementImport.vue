@@ -13,6 +13,14 @@
         <input type="file" :accept="fileType" multiple ref="import" class="w-full">
       </div>
 
+      <div class="mt-2" v-for="entry in parameters" v-bind:key="'parameter-' + entry.key">
+        <div class="font-semibold">{{ entry.name }}</div>
+        <select v-if="entry.type === 'account'" class="rounded-md w-full" @change="event => setParameterValue(entry.key, event.target.value)">
+          <option disabled selected>&mdash; Select an account &mdash;</option>
+          <option v-for="account in accounts" v-bind:key="'parameter-account-' + account.id" :value="account.id">{{ account.attributes.name }}</option>
+        </select>
+      </div>
+
       <div class="mt-2 text-right">
         <button class="bg-blue-500 px-3 py-2 text-white rounded-md hover:bg-blue-600" @click="importTransactions">Upload</button>
       </div>
@@ -33,12 +41,19 @@ export default {
   },
   data() {
     return {
-      importer: null
+      importer: null,
+      parameterValues: {}
     }
   },
   watch: {
     importers() {
       this.importer = this.importers[0].key
+    },
+    selectedImporter() {
+      if (this.selectedImporter == null) return
+      const parameters = {}
+      this.parameters.forEach(it => parameters[it.key] = null)
+      this.parameterValues = parameters
     }
   },
   mounted() {
@@ -48,10 +63,19 @@ export default {
     importers() {
       return this.$store.state.importers
     },
+    accounts() {
+      return this.$store.getters.getAccounts()
+    },
+    selectedImporter() {
+      return this.importers.find(it => it.key === this.importer)
+    },
     fileType() {
-      const importer = this.importers.find(it => it.key === this.importer)
-      if (importer == null) return null
-      return importer.fileFormat
+      if (this.selectedImporter == null) return null
+      return this.selectedImporter.fileFormat
+    },
+    parameters() {
+      if (this.selectedImporter == null) return null
+      return this.selectedImporter.parameters
     }
   },
   methods: {
@@ -61,12 +85,16 @@ export default {
 
       this.$store.dispatch('importStatements', {
         importer: this.importer,
-        files: files
+        files: files,
+        params: this.parameterValues
       }).then(() => {
         this.$emit('hide')
         this.$emit('imported')
       })
     },
+    setParameterValue(key, value) {
+      this.parameterValues = { ...this.parameterValues, [key]: value }
+    }
   }
 }
 </script>
