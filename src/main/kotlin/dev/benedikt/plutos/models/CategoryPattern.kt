@@ -15,7 +15,13 @@ class CategoryPattern : Pattern {
     @Transient var categoryId: Int = -1
     @Transient var patternId: Int = -1
 
-    constructor(name: String, regex: String, matchMode: MatchMode) : super(name, regex, matchMode)
+    constructor(
+        name: String,
+        regex: String,
+        matchMode: MatchMode,
+        matchTargets: List<MatchTarget>,
+        squishData: Boolean
+    ) : super(name, regex, matchMode, matchTargets, squishData)
 }
 
 object CategoryPatterns : IntIdTable() {
@@ -29,7 +35,9 @@ fun ResultRow.toCategoryPattern() = Model(
     attributes = CategoryPattern(
         name = this[Patterns.name],
         regex = this[Patterns.regex],
-        matchMode = this[Patterns.matchMode]
+        matchMode = this[Patterns.matchMode],
+        matchTargets = this[Patterns.matchTargets]?.split(",")?.map(MatchTarget::valueOf) ?: listOf(),
+        squishData = this[Patterns.squishData]
     ).also {
         it.patternId = this[Patterns.id].value
         it.categoryId = this[CategoryPatterns.categoryId].value
@@ -43,7 +51,9 @@ fun Model<Pattern>.toCategoryPattern(patternId: Int, categoryId: Int): Model<Cat
         attributes = CategoryPattern(
             name = this.attributes.name,
             regex = this.attributes.regex,
-            matchMode = this.attributes.matchMode
+            matchMode = this.attributes.matchMode,
+            matchTargets = this.attributes.matchTargets,
+            squishData = this.attributes.squishData
         ).also {
             it.patternId = patternId
             it.categoryId = categoryId
@@ -62,7 +72,9 @@ fun Patterns.insertCategoryPattern(pattern: Model<CategoryPattern>, categoryId: 
     val attributes = CategoryPattern(
         pattern.attributes.name,
         pattern.attributes.regex,
-        pattern.attributes.matchMode
+        pattern.attributes.matchMode,
+        pattern.attributes.matchTargets,
+        pattern.attributes.squishData
     )
 
     attributes.categoryId = categoryId

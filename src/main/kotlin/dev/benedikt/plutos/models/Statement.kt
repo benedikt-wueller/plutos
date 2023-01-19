@@ -186,6 +186,7 @@ fun Model<Statement>.toResourceObject(): ResourceObject {
 data class CategoryAndTagResult(val categoryId: Int, val tagIds: List<Int>)
 
 fun applyCategoryAndTags(statements: List<Model<Statement>>) {
+    val tags = Tags.selectAll().map(ResultRow::toTag)
     val tagPatterns = TagPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toTagPattern)
 
     val categoryPatterns = CategoryPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toCategoryPattern)
@@ -196,7 +197,7 @@ fun applyCategoryAndTags(statements: List<Model<Statement>>) {
     StatementTags.deleteWhere { manual eq false }
     statements.forEach { statement ->
         val tagIds = determineTagIds(statement.attributes, tagPatterns)
-        val manualTagIds = StatementTags.slice(StatementTags.id).select { StatementTags.statementId eq statement.id }.map { it[StatementTags.id].value }
+        val manualTagIds = StatementTags.slice(StatementTags.tagId).select { StatementTags.statementId eq statement.id }.map { it[StatementTags.tagId].value }
 
         val newTagIds = tagIds.filter { !manualTagIds.contains(it) }
         newTagIds.forEach { id ->
@@ -209,7 +210,10 @@ fun applyCategoryAndTags(statements: List<Model<Statement>>) {
         if (statement.attributes.manualCategory == true && categoryIds.contains(statement.attributes.categoryId)) return@forEach
 
         val allTagIds = tagIds.union(manualTagIds).distinct()
-        val categoryId = determineCategoryId(statement.attributes, categoryPatterns, defaultCategoryId, allTagIds)
+        val selectedTags = tags.filter { allTagIds.contains(it.id) }
+        val preferredCategoryIds = selectedTags.mapNotNull { it.attributes.categoryId }
+
+        val categoryId = determineCategoryId(statement.attributes, categoryPatterns, defaultCategoryId, preferredCategoryIds)
         Statements.update({ Statements.id eq statement.id }) { it[Statements.categoryId] = categoryId }
     }
 }
@@ -237,7 +241,8 @@ fun determineCategoryId(statement: Statement, patterns: List<Model<CategoryPatte
 
     patterns.forEach { pattern ->
         val regex = Regex(pattern.attributes.regex)
-        val matching = statement.contentValues.any {
+        val values = getContentValues(statement, pattern.attributes)
+        val matching = values.any {
             when (pattern.attributes.matchMode) {
                 MatchMode.PARTIAL_MATCH, MatchMode.NO_PARTIAL_MATCH -> regex.containsMatchIn(it)
                 MatchMode.FULL_MATCH, MatchMode.NO_FULL_MATCH -> regex.matches(it)
@@ -268,7 +273,8 @@ fun determineTagIds(statement: Statement, patterns: List<Model<TagPattern>>) : L
 
     patterns.forEach { pattern ->
         val regex = Regex(pattern.attributes.regex)
-        val matching = statement.contentValues.any {
+        val values = getContentValues(statement, pattern.attributes)
+        val matching = values.any {
             when (pattern.attributes.matchMode) {
                 MatchMode.PARTIAL_MATCH, MatchMode.NO_PARTIAL_MATCH -> regex.containsMatchIn(it)
                 MatchMode.FULL_MATCH, MatchMode.NO_FULL_MATCH -> regex.matches(it)
@@ -284,4 +290,9 @@ fun determineTagIds(statement: Statement, patterns: List<Model<TagPattern>>) : L
     }
 
     return matchedIds.filter { !excludedIds.contains(it) }
+}
+
+private fun getContentValues(statement: Statement, pattern: Pattern) : List<String> {
+    if (pattern.matchTargets.isEmpty()) return statement.contentValues
+    return pattern.matchTargets.map { it.property.get(statement).toString() }
 }

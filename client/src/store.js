@@ -638,7 +638,6 @@ const store = {
         findTag: (state) => (id) => state.tags[id],
 
         getTagPatterns: (state) => (id) => {
-            console.log(state.tagPatterns)
             return Object.values(state.tagPatterns).filter(it => it.relationships.tag.data.id == id)
         },
     }

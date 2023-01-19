@@ -42,78 +42,7 @@
       </card>
     </div>
 
-    <modal :title="selectedPattern.id ? 'Edit Pattern' : 'Add Pattern'" v-if="selectedPattern" @hide="hideModal">
-      <div>
-        <div class="font-semibold">Name</div>
-        <input type="text" class="rounded-md w-full" placeholder="Name" v-model="selectedPattern.attributes.name">
-      </div>
-
-      <div class="mt-4">
-        <div class="font-semibold">Regex</div>
-        <input type="text" class="rounded-md w-full" placeholder="Name" v-model="selectedPattern.attributes.regex">
-      </div>
-
-      <div class="mt-4">
-        <div class="font-semibold">Match Mode</div>
-        <div>
-          <div class="form-check flex">
-            <input class="form-check-input appearance-none rounded-full h-4 w-4 border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 mt-1 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
-                   type="radio"
-                   name="flexRadioDefault"
-                   id="flexRadioDefault1"
-                   value="FULL_MATCH"
-                   v-model="selectedPattern.attributes.matchMode">
-            <label class="form-check-label inline-block text-gray-800" for="flexRadioDefault1">
-              Full Match &mdash; applies this category if any statement value matches the pattern exactly.
-            </label>
-          </div>
-          <div class="form-check flex">
-            <input class="form-check-input appearance-none rounded-full h-4 w-4 border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 mt-1 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
-                   type="radio"
-                   name="flexRadioDefault"
-                   id="flexRadioDefault2"
-                   value="PARTIAL_MATCH"
-                   v-model="selectedPattern.attributes.matchMode">
-            <label class="form-check-label inline-block text-gray-800" for="flexRadioDefault2">
-              Partial Match &mdash; applies this category if any statement value contains the pattern.
-            </label>
-          </div>
-          <div class="form-check flex">
-            <input class="form-check-input appearance-none rounded-full h-4 w-4 border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 mt-1 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
-                   type="radio"
-                   name="flexRadioDefault"
-                   id="flexRadioDefault3"
-                   value="NO_FULL_MATCH"
-                   v-model="selectedPattern.attributes.matchMode">
-            <label class="form-check-label inline-block text-gray-800" for="flexRadioDefault3">
-              No Full Match &mdash; applies this category <b>only if</b> no statement value matches the pattern exactly.
-            </label>
-          </div>
-          <div class="form-check flex">
-            <input class="form-check-input appearance-none rounded-full h-4 w-4 border border-gray-300 bg-white checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 mt-1 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
-                   type="radio"
-                   name="flexRadioDefault"
-                   id="flexRadioDefault4"
-                   value="NO_PARTIAL_MATCH"
-                   v-model="selectedPattern.attributes.matchMode">
-            <label class="form-check-label inline-block text-gray-800" for="flexRadioDefault4">
-              No Partial Match &mdash; applies this category <b>only if</b> no statement value contains the pattern.
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4 pt-4 border-t-2 flex gap-2 flex">
-        <input type="submit" value="Delete"
-               v-if="selectedPattern.id"
-               class="rounded-md bg-red-500 px-4 py-1.5 text-white cursor-pointer hover:bg-red-800"
-               @click="deletePattern">
-        <div class="flex-grow"></div>
-        <input type="submit" value="Save"
-               class="rounded-md bg-blue-500 px-4 py-1.5 text-white cursor-pointer hover:bg-blue-800"
-               @click="submitPattern">
-      </div>
-    </modal>
+    <PatternModal :selected-pattern="selectedPattern" @hide="hideModal" @delete="deletePattern" @submit="submitPattern"></PatternModal>
   </div>
 </template>
 
@@ -122,10 +51,11 @@ import Breadcrumbs from "../components/Breadcrumbs.vue";
 import {FontAwesomeIcon} from "@fortawesome/vue-fontawesome";
 import Card from "../components/Card.vue";
 import Modal from "../components/Modal.vue";
+import PatternModal from "../components/PatternModal.vue";
 
 export default {
   name: "Category",
-  components: {Modal, Card, FontAwesomeIcon, Breadcrumbs},
+  components: {PatternModal, Modal, Card, FontAwesomeIcon, Breadcrumbs},
   data() {
     return {
       id: null,
@@ -158,7 +88,9 @@ export default {
           attributes: {
             name: 'New Category Pattern',
             regex: '.*',
-            matchMode: 'FULL_MATCH',
+            matchMode: 'PARTIAL_MATCH',
+            matchTargets: [],
+            squishData: false
           }
         }
       } else {

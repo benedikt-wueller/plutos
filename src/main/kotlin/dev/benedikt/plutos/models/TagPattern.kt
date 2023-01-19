@@ -18,7 +18,13 @@ class TagPattern : Pattern {
     @Transient
     var patternId: Int = -1
 
-    constructor(name: String, regex: String, matchMode: MatchMode) : super(name, regex, matchMode)
+    constructor(
+        name: String,
+        regex: String,
+        matchMode: MatchMode,
+        matchTargets: List<MatchTarget>,
+        squishData: Boolean
+    ) : super(name, regex, matchMode, matchTargets, squishData)
 }
 
 object TagPatterns : IntIdTable() {
@@ -32,7 +38,9 @@ fun ResultRow.toTagPattern() = Model(
     attributes = TagPattern(
         name = this[Patterns.name],
         regex = this[Patterns.regex],
-        matchMode = this[Patterns.matchMode]
+        matchMode = this[Patterns.matchMode],
+        matchTargets = this[Patterns.matchTargets]?.split(",")?.map(MatchTarget::valueOf) ?: listOf(),
+        squishData = this[Patterns.squishData]
     ).also {
         it.patternId = this[Patterns.id].value
         it.tagId = this[TagPatterns.tagId].value
@@ -45,7 +53,9 @@ fun Model<Pattern>.toTagPattern(patternId: Int, tagId: Int) = Model(
     attributes = TagPattern(
         name = this.attributes.name,
         regex = this.attributes.regex,
-        matchMode = this.attributes.matchMode
+        matchMode = this.attributes.matchMode,
+        matchTargets = this.attributes.matchTargets,
+        squishData = this.attributes.squishData
     ).also {
         it.patternId = patternId
         it.tagId = tagId
@@ -63,7 +73,9 @@ fun Patterns.insertTagPattern(pattern: Model<TagPattern>, tagId: Int) : Model<Ta
     val attributes = TagPattern(
         pattern.attributes.name,
         pattern.attributes.regex,
-        pattern.attributes.matchMode
+        pattern.attributes.matchMode,
+        pattern.attributes.matchTargets,
+        pattern.attributes.squishData
     )
 
     attributes.tagId = tagId
