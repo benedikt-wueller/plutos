@@ -94,7 +94,7 @@
         <input type="submit" value="Edit Patterns"
                v-if="selectedCategory.id"
                class="rounded-md bg-blue-500 px-4 py-1.5 text-white cursor-pointer hover:bg-blue-800"
-               @click="$router.push('/categories/' + selectedCategory.id)">
+               @click="editPatterns">
         <input type="submit" value="Save"
                class="rounded-md bg-blue-500 px-4 py-1.5 text-white cursor-pointer hover:bg-blue-800"
                @click="submitCategory">
@@ -145,8 +145,10 @@ export default {
     submitCategory() {
       if (this.selectedCategory == null) return;
       const action = this.selectedCategory.id == null ? 'createCategory' : 'updateCategory'
-      this.$store.dispatch(action, this.selectedCategory).then(() => {
+      return this.$store.dispatch(action, this.selectedCategory).then(() => {
+        const category = this.selectedCategory
         this.selectedCategory = null
+        return category
       })
     },
     deleteCategory() {
@@ -156,6 +158,9 @@ export default {
     },
     hideModal() {
       this.selectedCategory = null
+    },
+    editPatterns() {
+      this.submitCategory().then(category => this.$router.push('/categories/' + category.id))
     }
   }
 }

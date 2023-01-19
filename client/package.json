@@ -13,7 +13,7 @@
     "release": "npm run build && npm run make"
   },
   "main": "src/electron.js",
-  "dependencies": {
+  "devDependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.2.1",
     "@fortawesome/free-regular-svg-icons": "^6.2.1",
     "@fortawesome/free-solid-svg-icons": "^6.2.1",
@@ -24,9 +24,7 @@
     "vue": "^3.2.45",
     "vue-router": "^4.1.6",
     "vue-tailwind-datepicker": "^1.2.6",
-    "vuex": "^4.0.2"
-  },
-  "devDependencies": {
+    "vuex": "^4.0.2",
     "@electron-forge/cli": "^6.0.4",
     "@electron-forge/maker-deb": "^6.0.4",
     "@electron-forge/maker-rpm": "^6.0.4",

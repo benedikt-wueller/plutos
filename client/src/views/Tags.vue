@@ -79,7 +79,7 @@
         <input type="submit" value="Edit Patterns"
                v-if="selectedTag.id"
                class="rounded-md bg-blue-500 px-4 py-1.5 text-white cursor-pointer hover:bg-blue-800"
-               @click="$router.push('/tags/' + selectedTag.id)">
+               @click="editPatterns">
         <input type="submit" value="Save"
                class="rounded-md bg-blue-500 px-4 py-1.5 text-white cursor-pointer hover:bg-blue-800"
                @click="submitTag">
@@ -143,8 +143,10 @@ export default {
           ? { type: 'categories', id: selectedCategoryId }
           : null
 
-      this.$store.dispatch(action, this.selectedTag).then(() => {
+      return this.$store.dispatch(action, this.selectedTag).then(() => {
+        const tag = this.selectedTag
         this.selectedTag = null
+        return tag
       })
     },
     deleteTag() {
@@ -160,6 +162,9 @@ export default {
       const category = this.$store.getters.findCategory(tag.relationships.category.data.id)
       if (!category) return '-'
       return category.attributes.name
+    },
+    editPatterns() {
+      this.submitTag().then(tag => this.$router.push('/tags/' + tag.id))
     }
   }
 }
