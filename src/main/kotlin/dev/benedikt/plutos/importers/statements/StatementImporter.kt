@@ -50,6 +50,8 @@ abstract class StatementImporter : Importer {
                 Statements.update(model)
             }
 
+            applyCategoryAndTags(outdatedStatements)
+
             if (!newStatements.any()) return@transaction
 
             val tags = Tags.selectAll().map(ResultRow::toTag)

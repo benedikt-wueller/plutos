@@ -130,7 +130,8 @@ suspend fun createOrUpdateStatement(call: ApplicationCall) {
         data.id = id
     }
 
-    val tagIds = data.relationships["tags"]?.let { it as? MultiRelationshipObject }?.data?.map { it.id }
+    val tagIdentifiers = data.relationships["tags"]?.let { it as? MultiRelationshipObject }?.data
+    val tagIds = tagIdentifiers?.map { it.id }
         ?: transaction {
             val statement = Statements.select { Statements.id eq data.id }.first().toStatement().attributes
             val patterns = TagPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toTagPattern)
@@ -139,12 +140,14 @@ suspend fun createOrUpdateStatement(call: ApplicationCall) {
 
     val categoryId = data.relationships["category"]?.let { it as? SingleRelationshipObject }?.data?.id
     if (categoryId == null || categoryId < 0) {
+        data.attributes.manualCategory = false
         data.attributes.categoryId = transaction {
             val patterns = CategoryPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toCategoryPattern)
             val defaultCategoryId = Categories.slice(Categories.id).select { Categories.default eq true }.first()[Categories.id]
             determineCategoryId(data.attributes, patterns, defaultCategoryId.value, tagIds)
         }
     } else {
+        data.attributes.manualCategory = true
         data.attributes.categoryId = categoryId
     }
 
@@ -177,6 +180,7 @@ suspend fun createOrUpdateStatement(call: ApplicationCall) {
             StatementTags.insert {
                 it[statementId] = entity.id!!
                 it[tagId] = id
+                it[manual] = tagIdentifiers != null
             }
         }
 

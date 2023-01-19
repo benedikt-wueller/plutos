@@ -3,10 +3,12 @@ package dev.benedikt.plutos.models
 import dev.benedikt.plutos.api.structure.Resource
 import dev.benedikt.plutos.api.structure.ResourceObject
 import dev.benedikt.plutos.api.structure.ResourceObjectBuilder
+import dev.benedikt.plutos.models.Categories.default
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigInteger
@@ -37,6 +39,7 @@ data class Statement(
     @Transient var accountId: Int? = null
     @Transient var idHash: String? = null
     @Transient var contentHash: String? = null
+    @Transient var manualCategory: Boolean? = false
 
     val contentValues get() = arrayOf(
         bookingDate, valueDate, type, amount, currency, purpose, creditorId, mandateReference,
@@ -82,6 +85,7 @@ object Statements : IntIdTable() {
     val comment = text("comment").nullable()
     val idHash = varchar("id_hash", 32).uniqueIndex()
     val contentHash = varchar("content_hash", 32)
+    val manualCategory = bool("manual_category").default(false)
 }
 
 fun ResultRow.toStatement(): Model<Statement> {
@@ -106,6 +110,7 @@ fun ResultRow.toStatement(): Model<Statement> {
     statement.categoryId = this[Statements.categoryId].value
     statement.idHash = this[Statements.idHash]
     statement.contentHash = this[Statements.contentHash]
+    statement.manualCategory = this[Statements.manualCategory]
 
     return Model(
         id = this[Statements.id].value,
@@ -135,6 +140,7 @@ fun Statements.insert(entity: Model<Statement>) : Model<Statement> {
         it[comment] = attributes.comment
         it[idHash] = attributes.idHash!!
         it[contentHash] = attributes.contentHash!!
+        it[manualCategory] = attributes.manualCategory!!
     }
     return entity.copy(id = id.value)
 }
@@ -160,6 +166,7 @@ fun Statements.update(entity: Model<Statement>) : Boolean {
         it[comment] = attributes.comment
         it[idHash] = attributes.idHash!!
         it[contentHash] = attributes.contentHash!!
+        it[manualCategory] = attributes.manualCategory!!
     } > 0
 }
 
@@ -179,24 +186,31 @@ fun Model<Statement>.toResourceObject(): ResourceObject {
 data class CategoryAndTagResult(val categoryId: Int, val tagIds: List<Int>)
 
 fun applyCategoryAndTags(statements: List<Model<Statement>>) {
-    val tags = Tags.selectAll().map(ResultRow::toTag)
     val tagPatterns = TagPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toTagPattern)
 
     val categoryPatterns = CategoryPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toCategoryPattern)
-    val defaultCategoryId = Categories.slice(Categories.id).select { Categories.default eq true }.first()[Categories.id].value
+    val defaultCategoryId = Categories.slice(Categories.id).select { default eq true }.first()[Categories.id].value
 
-    StatementTags.deleteAll()
+    val categoryIds = Categories.slice(Categories.id).selectAll().map { it[Categories.id].value }
+
+    StatementTags.deleteWhere { manual eq false }
     statements.forEach { statement ->
-        val result = determineCategoryAndTags(statement, tags, tagPatterns, categoryPatterns, defaultCategoryId)
+        val tagIds = determineTagIds(statement.attributes, tagPatterns)
+        val manualTagIds = StatementTags.slice(StatementTags.id).select { StatementTags.statementId eq statement.id }.map { it[StatementTags.id].value }
 
-        result.tagIds.forEach { id ->
+        val newTagIds = tagIds.filter { !manualTagIds.contains(it) }
+        newTagIds.forEach { id ->
             StatementTags.insert {
                 it[tagId] = id
                 it[statementId] = statement.id!!
             }
         }
 
-        Statements.update({ Statements.id eq statement.id }) { it[categoryId] = result.categoryId }
+        if (statement.attributes.manualCategory == true && categoryIds.contains(statement.attributes.categoryId)) return@forEach
+
+        val allTagIds = tagIds.union(manualTagIds).distinct()
+        val categoryId = determineCategoryId(statement.attributes, categoryPatterns, defaultCategoryId, allTagIds)
+        Statements.update({ Statements.id eq statement.id }) { it[Statements.categoryId] = categoryId }
     }
 }
 
