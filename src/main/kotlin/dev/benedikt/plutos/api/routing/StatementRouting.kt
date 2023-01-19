@@ -142,7 +142,7 @@ suspend fun createOrUpdateStatement(call: ApplicationCall) {
     if (categoryId == null || categoryId < 0) {
         data.attributes.manualCategory = false
         data.attributes.categoryId = transaction {
-            val categoryIds = StatementTags.leftJoin(Tags).select { StatementTags.id inList tagIds }.mapNotNull { it[Tags.categoryId]?.value }
+            val categoryIds = Tags.select { Tags.id inList tagIds }.mapNotNull { it[Tags.categoryId]?.value }
             val patterns = CategoryPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toCategoryPattern)
             val defaultCategoryId = Categories.slice(Categories.id).select { Categories.default eq true }.first()[Categories.id]
             determineCategoryId(data.attributes, patterns, defaultCategoryId.value, categoryIds)
