@@ -47,7 +47,7 @@ class CommerzbankImporter : StatementImporter("Commerzbank Export (CSV)", "comme
             var thirdPartyAccount: String? = null
             var thirdPartyBankCode: String? = null
 
-            val transferMatch = Regex("^(\\S+\\s\\S+)\\s([0-9A-Z]{8,11})\\s([0-9A-Z]{15,34})\\s").find(purpose)
+            val transferMatch = Regex("^(.*?)\\s([0-9A-Z]{8,11})\\s([0-9A-Z]{15,34})\\s").find(purpose)
             if (transferMatch != null) {
                 purpose = purpose.replace(transferMatch.value, "")
                 thirdPartyName = transferMatch.groups[1]!!.value.trim()
