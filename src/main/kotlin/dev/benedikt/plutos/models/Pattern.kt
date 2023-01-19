@@ -23,6 +23,7 @@ enum class MatchTarget(val property: KProperty1<Statement, *>) {
     THIRD_PARTY_NAME(Statement::thirdPartyName),
     THIRD_PARTY_ACCOUNT(Statement::thirdPartyAccount),
     THIRD_PARTY_BANK_CODE(Statement::thirdPartyBankCode),
+    TYPE(Statement::type)
 }
 
 @Serializable
