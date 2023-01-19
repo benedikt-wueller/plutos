@@ -312,31 +312,31 @@ export default {
           ]
         },
         {
-          label: 'Last 30 Days',
+          label: '30 Days',
           atClick: () => [
             dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
-            dayjs().subtract(1, 'days').format('YYYY-MM-DD')
+            dayjs().format('YYYY-MM-DD')
           ]
         },
         {
-          label: 'Last 2 Months',
+          label: '2 Months',
           atClick: () => [
             dayjs().subtract(2, 'month').startOf('month').format('YYYY-MM-DD'),
-            dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD')
+            dayjs().endOf('month').format('YYYY-MM-DD')
           ]
         },
         {
-          label: 'Last 3 Months',
+          label: '3 Months',
           atClick: () => [
             dayjs().subtract(3, 'month').startOf('month').format('YYYY-MM-DD'),
-            dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD')
+            dayjs().endOf('month').format('YYYY-MM-DD')
           ]
         },
         {
-          label: 'Last 6 Months',
+          label: '6 Months',
           atClick: () => [
-            dayjs().subtract(6, 'month').startOf('month').format('YYYY-MM-DD'),
-            dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD')
+            dayjs().subtract(3, 'month').startOf('month').format('YYYY-MM-DD'),
+            dayjs().endOf('month').format('YYYY-MM-DD')
           ]
         },
         {
