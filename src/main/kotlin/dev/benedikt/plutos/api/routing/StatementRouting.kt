@@ -123,21 +123,26 @@ suspend fun createOrUpdateStatement(call: ApplicationCall) {
 
     if (idParameter != null) {
         val id = call.parameters.getOrFail("statementId").toIntOrNull()
-
         if (id == null) {
             call.respondStatementNotFound()
             return
         }
-
         data.id = id
     }
+
+    val tagIds = data.relationships["tags"]?.let { it as? MultiRelationshipObject }?.data?.map { it.id }
+        ?: transaction {
+            val statement = Statements.select { Statements.id eq data.id }.first().toStatement().attributes
+            val patterns = TagPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toTagPattern)
+            determineTagIds(statement, patterns)
+        }
 
     val categoryId = data.relationships["category"]?.let { it as? SingleRelationshipObject }?.data?.id
     if (categoryId == null || categoryId < 0) {
         data.attributes.categoryId = transaction {
             val patterns = CategoryPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toCategoryPattern)
             val defaultCategoryId = Categories.slice(Categories.id).select { Categories.default eq true }.first()[Categories.id]
-            determineCategoryId(data.attributes, patterns, defaultCategoryId.value)
+            determineCategoryId(data.attributes, patterns, defaultCategoryId.value, tagIds)
         }
     } else {
         data.attributes.categoryId = categoryId
@@ -154,12 +159,8 @@ suspend fun createOrUpdateStatement(call: ApplicationCall) {
         if (!Accounts.select { Accounts.id eq data.attributes.accountId }.any()) return@transaction null
         if (!Categories.select { Categories.id eq data.attributes.categoryId }.any()) return@transaction null
 
-        val tagIdentifiers = data.relationships["tags"]?.let { it as? MultiRelationshipObject }?.data
-
-        if (tagIdentifiers != null) {
-            val tagsExist = Tags.select { Tags.id inList tagIdentifiers.map { it.id } }.count() == tagIdentifiers.size.toLong()
-            if (!tagsExist) return@transaction null
-        }
+        val tagsExist = Tags.select { Tags.id inList tagIds }.count() == tagIds.size.toLong()
+        if (!tagsExist) return@transaction null
 
         data.attributes.updateIdHash()
         data.attributes.updateContentHash()
@@ -172,23 +173,10 @@ suspend fun createOrUpdateStatement(call: ApplicationCall) {
         } else return@transaction null
 
         StatementTags.deleteWhere { statementId eq entity.id!! }
-        if (tagIdentifiers != null) {
-            tagIdentifiers.forEach { identifier ->
-                StatementTags.insert {
-                    it[statementId] = entity.id!!
-                    it[tagId] = identifier.id
-                }
-            }
-        } else {
-            val statement = Statements.select { Statements.id eq data.id }.first().toStatement().attributes
-            val patterns = TagPatterns.leftJoin(Patterns).selectAll().map(ResultRow::toTagPattern)
-
-            val ids = determineTagIds(statement, patterns)
-            ids.forEach { id ->
-                StatementTags.insert {
-                    it[statementId] = entity.id!!
-                    it[tagId] = id
-                }
+        tagIds.forEach { id ->
+            StatementTags.insert {
+                it[statementId] = entity.id!!
+                it[tagId] = id
             }
         }
 
