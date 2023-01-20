@@ -17,6 +17,11 @@ import java.security.MessageDigest
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+enum class StatementState {
+    ACTIVE,
+    INACTIVE
+}
+
 @Serializable
 data class Statement(
     val bookingDate: String,
@@ -33,6 +38,7 @@ data class Statement(
     val thirdPartyAccount: String?,
     val thirdPartyBankCode: String?,
     val comment: String? = null,
+    val state: StatementState? = null
 ) : Resource {
     companion object { const val type = "statements" }
 
@@ -89,6 +95,7 @@ object Statements : IntIdTable() {
     val contentHash = varchar("content_hash", 32)
     val manualCategory = bool("manual_category").default(false)
     val manualTags = bool("manual_tags").default(false)
+    val state = enumeration<StatementState>("state").default(StatementState.ACTIVE)
 }
 
 fun ResultRow.toStatement(): Model<Statement> {
@@ -106,7 +113,8 @@ fun ResultRow.toStatement(): Model<Statement> {
         thirdPartyName = this[Statements.thirdPartyName],
         thirdPartyAccount = this[Statements.thirdPartyAccount],
         thirdPartyBankCode = this[Statements.thirdPartyBankCode],
-        comment = this[Statements.comment]
+        comment = this[Statements.comment],
+        state = this[Statements.state]
     )
 
     statement.accountId = this[Statements.accountId].value
@@ -146,6 +154,7 @@ fun Statements.insert(entity: Model<Statement>) : Model<Statement> {
         it[contentHash] = attributes.contentHash!!
         it[manualCategory] = attributes.manualCategory!!
         it[manualTags] = attributes.manualTags!!
+        it[state] = attributes.state ?: StatementState.ACTIVE
     }
     return entity.copy(id = id.value)
 }
@@ -173,6 +182,7 @@ fun Statements.update(entity: Model<Statement>) : Boolean {
         it[contentHash] = attributes.contentHash!!
         it[manualCategory] = attributes.manualCategory!!
         it[manualTags] = attributes.manualTags!!
+        it[state] = attributes.state ?: StatementState.ACTIVE
     } > 0
 }
 

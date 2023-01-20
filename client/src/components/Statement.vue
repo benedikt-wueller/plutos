@@ -1,5 +1,7 @@
 <template>
-  <div v-if="category && account" class="block p-6 bg-white border border-gray-200 rounded-lg shadow-md grid grid-cols-3 gap-4 text-sm">
+  <div v-if="category && account"
+       class="block p-6 bg-white border border-gray-200 rounded-lg shadow-md grid grid-cols-3 gap-4 text-sm"
+       :class="{ 'opacity-50': statement.attributes.state === 'INACTIVE' }">
     <div class="col-span-2" >
       <div class="font-semibold text-md">{{ statement.attributes.thirdPartyName || statement.attributes.type }}</div>
       <div v-if="statement.attributes.purpose" class="font-normal text-gray-700 mt-0.5">{{ statement.attributes.purpose }}</div>

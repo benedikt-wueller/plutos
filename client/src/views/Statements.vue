@@ -14,10 +14,6 @@
 
     <h1 class="mt-8 text-2xl font-semibold">Filters</h1>
 
-    <div class="mt-2">
-      <input type="text" placeholder="Search" class="w-full rounded-md" v-model="term" />
-    </div>
-
     <div class="mt-4">
       <h1 class="text-xl font-semibold mb-4"><font-awesome-icon icon="fa-solid fa-coins"></font-awesome-icon> Categories & Budgets</h1>
 
@@ -70,8 +66,24 @@
       </div>
     </div>
 
+    <div class="mt-4">
+      <input type="text" placeholder="Search" class="w-full rounded-md" v-model="term" />
+    </div>
+
     <div class="mt-8 mb-8">
-      <h1 class="text-2xl font-semibold mb-4">Statements</h1>
+      <div class="flex">
+        <h1 class="text-2xl font-semibold mb-4 flex-grow">Statements</h1>
+
+        <div>
+          <div class="inline-block rounded-full py-0.5 px-2.5 cursor-pointer opacity-50 hover:opacity-100 mr-1 mb-1.5 w-12 text-center"
+               :class="{ 'bg-red-200': showInactive, 'bg-green-200': !showInactive }"
+               :title="showInactive ? 'Hide inactive statements' : 'Show inactive statements'"
+               @click="showInactive = !showInactive">
+            <font-awesome-icon v-if="!showInactive" icon="fa-solid fa-eye"></font-awesome-icon>
+            <font-awesome-icon v-if="showInactive" icon="fa-solid fa-eye-slash"></font-awesome-icon>
+          </div>
+        </div>
+      </div>
 
       <div class="grid grid-cols-1 gap-4">
         <div class="block p-6 bg-gray-800 rounded-lg shadow grid grid-cols-2 gap-4 text-white">
@@ -228,7 +240,7 @@
         <textarea class="rounded-md w-full" placeholder="Comment" v-model="selectedStatement.attributes.comment"></textarea>
       </div>
 
-      <div class="mt-2 grid grid-cols-2 gap-4">
+      <div class="mt-2 grid grid-cols-3 gap-4">
         <div>
           <div class="font-semibold">Account</div>
           <select class="w-full rounded-md" :value="selectedStatement.relationships.account.data.id" @change="e => selectedStatement.relationships.account.data.id = e.target.value">
@@ -240,6 +252,13 @@
           <select class="w-full rounded-md" :value="selectedStatement.relationships.category.data.id" @change="e => selectedStatement.relationships.category.data.id = e.target.value">
             <option :value="-1">Select Automatically</option>
             <option v-for="category in categories" :value="category.id">{{ category.attributes.name }}</option>
+          </select>
+        </div>
+        <div>
+          <div class="font-semibold">State</div>
+          <select class="w-full rounded-md" :value="selectedStatement.attributes.state" @change="e => selectedStatement.attributes.state = e.target.value">
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
           </select>
         </div>
       </div>
@@ -296,6 +315,7 @@ export default {
       showImportModal: false,
       selectedStatement: null,
       autoSelectStatementTags: false,
+      showInactive: false,
       dateFormatter: {
         date: 'YYYY-MM-DD',
         month: 'MMM'
@@ -406,6 +426,7 @@ export default {
     },
     statements() {
       return this.$store.getters.getStatements(this.range.from, this.range.to)
+          .filter(it => this.showInactive || it.attributes.state === 'ACTIVE')
     },
     filteredStatements() {
       return this.statements
@@ -587,7 +608,9 @@ export default {
       })
     },
     getCategoryStatements(category) {
-      return this.statements.filter(it => it.relationships.category.data.id === category.id)
+      return this.statements
+          .filter(it => it.relationships.category.data.id === category.id)
+          .filter(it => it.attributes.state === 'ACTIVE')
     },
     getCategorySum(category) {
       let sum = 0
