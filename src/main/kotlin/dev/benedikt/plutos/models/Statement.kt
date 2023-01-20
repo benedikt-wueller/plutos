@@ -14,8 +14,8 @@ import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigInteger
 import java.security.MessageDigest
+import java.time.Duration
 import java.time.LocalDate
-import java.time.Period
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
@@ -306,19 +306,20 @@ fun linkStatements() {
         statements.remove(statement)
 
         val date = LocalDate.parse(statement.attributes.valueDate, DateTimeFormatter.ISO_DATE)
-        val target = statements.firstOrNull { other ->
-            if (statement == other) return@firstOrNull false
+        val target = statements.mapNotNull { other ->
+            if (statement == other) return@mapNotNull null
 
-            if (statement.attributes.accountId == other.attributes.accountId) return@firstOrNull false
-            if (statement.attributes.amount != -other.attributes.amount) return@firstOrNull false
-            if (statement.attributes.currency != other.attributes.currency) return@firstOrNull false
+            if (statement.attributes.accountId == other.attributes.accountId) return@mapNotNull null
+            if (statement.attributes.amount != -other.attributes.amount) return@mapNotNull null
+            if (statement.attributes.currency != other.attributes.currency) return@mapNotNull null
 
             val otherDate = LocalDate.parse(other.attributes.valueDate, DateTimeFormatter.ISO_DATE)
-            val dateDiff = Period.between(date, otherDate)
-            if (abs(dateDiff.days) > 3) return@firstOrNull false
 
-            return@firstOrNull true
-        } ?: return@forEach
+            val seconds = abs(Duration.between(date, otherDate).toSeconds())
+            if (seconds > 7 * 24 * 60 * 60) return@mapNotNull null
+
+            return@mapNotNull seconds to other
+        }.minByOrNull { it.first }?.second ?: return@forEach
 
         statements.remove(target)
 
