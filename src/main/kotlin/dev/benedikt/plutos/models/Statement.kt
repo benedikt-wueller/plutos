@@ -14,8 +14,8 @@ import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigInteger
 import java.security.MessageDigest
-import java.time.Duration
 import java.time.LocalDate
+import java.time.Period
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
@@ -315,10 +315,11 @@ fun linkStatements() {
 
             val otherDate = LocalDate.parse(other.attributes.valueDate, DateTimeFormatter.ISO_DATE)
 
-            val seconds = abs(Duration.between(date, otherDate).toSeconds())
-            if (seconds > 7 * 24 * 60 * 60) return@mapNotNull null
+            val period = Period.between(date, otherDate)
+            val days = abs(period.days)
+            if (period.years != 0 || period.months != 0 || days > 7) return@mapNotNull null
 
-            return@mapNotNull seconds to other
+            return@mapNotNull days to other
         }.minByOrNull { it.first }?.second ?: return@forEach
 
         statements.remove(target)
