@@ -14,7 +14,7 @@ function createWindow() {
 }
 
 const plutosBackend = spawn('java', ['-jar', 'resources/plutos.jar'])
-plutosBackend.on('close', (code) => {
+plutosBackend.on('close', () => {
     app.exit(0)
 })
 
@@ -28,8 +28,6 @@ app.whenReady().then(() => {
     })
 })
 
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
+app.on('quit', () => {
+    plutosBackend.kill()
 })
