@@ -505,7 +505,7 @@ export default {
         return {
           type: 'transfer',
           id: Date.now() + '-' + index,
-          date: first && first.attributes.valueDate,
+          date: second && second.attributes.valueDate,
           show: false,
           first, firstAccount,
           second, secondAccount

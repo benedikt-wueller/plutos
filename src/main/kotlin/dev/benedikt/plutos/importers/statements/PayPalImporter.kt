@@ -32,7 +32,7 @@ class PayPalImporter : StatementImporter(
         val account = transaction { Accounts.select { Accounts.id eq parameters["account"]!!.toInt() }.single().toAccount() }
 
         val rows = csvReader { delimiter = ',' }.readAll(inputStream)
-        return rows.drop(1).map {
+        val statements = rows.drop(1).map {
             val date = LocalDate.parse(it[0], dateTimeFormatter)
 
             var purpose = "Transaction: ${it[9]}"
@@ -40,24 +40,54 @@ class PayPalImporter : StatementImporter(
             it[17].condensedAnyOrNull()?.run { purpose += " - Related Transaction: $this" }
             it[10].condensedAnyOrNull()?.run { purpose += " - Email: $this" }
 
-            ImportStatement(
-                Statement(
-                    date.format(DateTimeFormatter.ISO_DATE),
-                    date.format(DateTimeFormatter.ISO_DATE),
-                    it[3],
-                    it[5].toDoubleInternational() ?: 0.0,
-                    it[4].trim().take(3).uppercase(),
-                    purpose,
-                    null,
-                    null,
-                    null,
-                    null,
-                    it[11].condensedAnyOrNull() ?: it[12],
-                    it[13],
-                    null
-                ),
-                account.attributes.identifier
+            Statement(
+                date.format(DateTimeFormatter.ISO_DATE),
+                date.format(DateTimeFormatter.ISO_DATE),
+                it[3],
+                it[5].toDoubleInternational() ?: 0.0,
+                it[4].trim().take(3).uppercase(),
+                purpose,
+                null,
+                null,
+                null,
+                null,
+                it[11].condensedAnyOrNull() ?: it[12],
+                it[13],
+                null
             )
+        }.toMutableList()
+
+        val exchangeStatements = statements
+            .filter { it.type == "Allgemeine Währungsumrechnung" || it.type == "General Currency Conversion" }
+            .filter { it.amount < 0 }
+
+        val relatedTransactionRegex = Regex("Related Transaction: (\\S+)")
+        exchangeStatements.forEach { exchangeStatement ->
+            val transactionId = relatedTransactionRegex.find(exchangeStatement.purpose!!)!!.groups[1]!!.value
+
+            val actualStatement = statements.single { it.purpose!!.startsWith("Transaction: $transactionId") }
+
+            val otherExchangeStatement = statements
+                .filter { it.type == "Allgemeine Währungsumrechnung" || it.type == "General Currency Conversion" }
+                .filter { it.purpose!!.contains("Related Transaction: $transactionId") }
+                .filter { it.amount > 0 }
+                .single { it != exchangeStatement }
+
+            val newStatement = actualStatement.copy(
+                amount = exchangeStatement.amount,
+                currency = exchangeStatement.currency,
+                purpose = "${actualStatement.purpose} - Exchanged: ${actualStatement.amount} ${actualStatement.currency}"
+            )
+
+            statements.remove(exchangeStatement)
+            statements.remove(otherExchangeStatement)
+
+            val index = statements.indexOf(actualStatement)
+            statements[index] = newStatement
+        }
+
+        return statements.map {
+            ImportStatement(it, account.attributes.identifier)
         }
     }
 }
