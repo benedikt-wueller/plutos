@@ -83,6 +83,8 @@ abstract class StatementImporter : Importer {
                     }
                 }
             }
+
+            linkStatements()
         }
     }
 

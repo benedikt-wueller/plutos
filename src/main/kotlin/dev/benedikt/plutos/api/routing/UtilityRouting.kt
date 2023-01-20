@@ -19,6 +19,9 @@ import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.time.LocalDate
+import java.time.Period
+import java.time.format.DateTimeFormatter
 
 fun Route.utilityRouting() {
     route("/utils") {
@@ -32,6 +35,11 @@ fun Route.utilityRouting() {
                 val statements = Statements.selectAll().map(ResultRow::toStatement)
                 applyCategoryAndTags(statements)
             }
+            call.respond(HttpStatusCode.NoContent)
+        }
+
+        post("linkStatements") {
+            transaction { linkStatements() }
             call.respond(HttpStatusCode.NoContent)
         }
 

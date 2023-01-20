@@ -80,6 +80,7 @@ fun Application.configureRouting() {
             categoryRouting()
             categoryPatternRouting()
             statementRouting()
+            statementLinkRouting()
             tagRouting()
             tagPatternRouting()
             utilityRouting()

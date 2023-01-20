@@ -73,5 +73,14 @@ class TagPatternResourceObject : ResourceObject {
     }
 }
 
+@SerialName(StatementLink.type)
+@Serializable
+class StatementLinkResourceObject : ResourceObject {
+    val attributes: StatementLink
+    constructor(id: Int?, attributes: StatementLink, relationships: Map<String, RelationshipObject>, links: Links?) : super(id, relationships, links) {
+        this.attributes = attributes
+    }
+}
+
 @Serializable
 data class ResourceWrapper<T : ResourceObject>(val data: T)

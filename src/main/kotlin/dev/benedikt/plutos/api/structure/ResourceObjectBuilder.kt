@@ -38,6 +38,7 @@ class ResourceObjectBuilder<T : Resource>(private val resource: Model<T>, privat
             CategoryPattern::class -> CategoryPatternResourceObject(resource.id, resource.attributes as CategoryPattern, relationships, links)
             Tag::class -> TagResourceObject(resource.id, resource.attributes as Tag, relationships, links)
             TagPattern::class -> TagPatternResourceObject(resource.id, resource.attributes as TagPattern, relationships, links)
+            StatementLink::class -> StatementLinkResourceObject(resource.id, resource.attributes as StatementLink, relationships, links)
             else -> throw NotImplementedError()
         }
     }

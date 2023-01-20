@@ -15,7 +15,9 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.time.LocalDate
+import java.time.Period
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 
 enum class StatementState {
     ACTIVE,
@@ -294,6 +296,48 @@ fun determineTagIds(statement: Statement, patterns: List<Model<TagPattern>>) : L
     }
 
     return matchedIds.filter { !excludedIds.contains(it) }
+}
+
+fun linkStatements() {
+    StatementLinks.deleteAll()
+
+    val statements = Statements.selectAll().map(ResultRow::toStatement).toMutableList()
+    statements.toList().forEach { statement ->
+        statements.remove(statement)
+
+        val date = LocalDate.parse(statement.attributes.valueDate, DateTimeFormatter.ISO_DATE)
+        val target = statements.firstOrNull { other ->
+            if (statement == other) return@firstOrNull false
+
+            if (statement.attributes.accountId == other.attributes.accountId) return@firstOrNull false
+            if (statement.attributes.amount != -other.attributes.amount) return@firstOrNull false
+            if (statement.attributes.currency != other.attributes.currency) return@firstOrNull false
+
+            val otherDate = LocalDate.parse(other.attributes.valueDate, DateTimeFormatter.ISO_DATE)
+            val dateDiff = Period.between(date, otherDate)
+            if (abs(dateDiff.days) > 3) return@firstOrNull false
+
+            return@firstOrNull true
+        } ?: return@forEach
+
+        statements.remove(target)
+
+        val sourceStatement: Model<Statement>
+        val targetStatement: Model<Statement>
+
+        if (statement.attributes.amount < 0) {
+            sourceStatement = statement
+            targetStatement = target
+        } else {
+            sourceStatement = target
+            targetStatement = statement
+        }
+
+        StatementLinks.insert {
+            it[firstStatementId] = sourceStatement.id!!
+            it[secondStatementId] = targetStatement.id!!
+        }
+    }
 }
 
 private fun isMatching(statement: Statement, pattern: Pattern) : Boolean {

@@ -31,6 +31,7 @@ const store = {
             tagPatterns: {},
             statements: {},
             accounts: {},
+            statementLinks: {}
         }
     },
     mutations: {
@@ -130,6 +131,16 @@ const store = {
         clearToast(state, payload) {
             state.toasts = {}
         },
+
+        pushStatementLinks(state, payload) {
+            payload.entities.forEach(entity => state.statementLinks[entity.id] = entity)
+        },
+        removeStatementLinks(state, payload) {
+            delete state.statementLinks[payload.id]
+        },
+        clearStatementLinks(state) {
+            state.statementLinks = {}
+        },
     },
     actions: {
         fetchStatements(context, payload) {
@@ -197,6 +208,19 @@ const store = {
             context.commit('incrementLoading')
             return axios.delete(context.state.baseUrl + '/statements').then(() => {
                 context.commit('clearStatements')
+                context.commit('decrementLoading')
+            }).catch(error => {
+                context.commit('addToast', { type: 'error', message: error.message })
+                context.commit('decrementLoading')
+                throw error;
+            })
+        },
+
+        fetchStatementLinks(context) {
+            context.commit('incrementLoading')
+            context.commit('clearStatementLinks')
+            return axios.get(context.state.baseUrl + '/statementLinks').then(response => {
+                context.commit('pushStatementLinks', { entities: response.data.data })
                 context.commit('decrementLoading')
             }).catch(error => {
                 context.commit('addToast', { type: 'error', message: error.message })

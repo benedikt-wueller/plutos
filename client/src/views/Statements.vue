@@ -141,11 +141,67 @@
           <div class="flex-grow bg-gray-300 h-0.5 rounded-xl"></div>
         </div>
 
-        <Statement v-for="statement in filteredStatements"
-                   v-bind:key="'statement-' + statement.id"
-                   class="hover:bg-gray-100 cursor-pointer"
-                   :statement="statement"
-                   @click="showModal(statement)"></Statement>
+        <div v-for="(entry, index) in entries" v-bind:key="'entry-' + index">
+          <div v-if="entry.type === 'transfer'">
+            <div class="block p-6 bg-indigo-50 border border-indigo-100 rounded-lg shadow-md text-sm hover:bg-indigo-100 cursor-pointer"
+                 @click="toggleTransfer(entry)">
+              <div class="items-center grid grid-cols-5 gap-4">
+                <div>
+                  <div class="text-left">
+                    <div :class="{
+                      'text-lg font-semibold hover:opacity-100': true,
+                      'text-red-500': entry.first.attributes.amount < 0,
+                      'opacity-50': entry.first.attributes.valueDate > new Date().toISOString() }">
+                      {{ $filters.formatNumber(entry.first.attributes.amount) }} {{ entry.first.attributes.currency }}
+                    </div>
+                    <div>{{ entry.first.attributes.type }}</div>
+                  </div>
+                </div>
+
+                <div class="text-center">
+                  <div>{{ entry.firstAccount.attributes.name }}</div>
+                  <div>{{ entry.first.attributes.valueDate }}</div>
+                </div>
+
+                <div class="text-center">
+                  <font-awesome-icon icon="fa-solid fa-angles-right"></font-awesome-icon>
+                </div>
+
+                <div class="text-center">
+                  <div>{{ entry.secondAccount.attributes.name }}</div>
+                  <div>{{ entry.second.attributes.valueDate }}</div>
+                </div>
+
+                <div>
+                  <div class="text-right">
+                    <div :class="{
+                      'text-lg font-semibold hover:opacity-100': true,
+                      'text-red-500': entry.second.attributes.amount < 0,
+                      'opacity-50': entry.second.attributes.valueDate > new Date().toISOString() }">
+                      {{ $filters.formatNumber(entry.second.attributes.amount) }} {{ entry.second.attributes.currency }}
+                    </div>
+                    <div>{{ entry.second.attributes.type }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="isExpanded(entry)" class="mt-4">
+                <Statement class="hover:bg-gray-200 cursor-pointer p-4"
+                           :statement="entry.first"
+                           @click.stop="showModal(entry.first)"></Statement>
+
+                <Statement class="hover:bg-gray-200 cursor-pointer p-4 mt-2"
+                           :statement="entry.second"
+                           @click.stop="showModal(entry.second)"></Statement>
+              </div>
+            </div>
+          </div>
+
+          <Statement v-if="entry.type === 'statement'"
+                     class="hover:bg-gray-100 cursor-pointer"
+                     :statement="entry.statement"
+                     @click="showModal(entry.statement)"></Statement>
+        </div>
       </div>
     </div>
 
@@ -399,7 +455,8 @@ export default {
       categoryFilters: [],
       tagFilters: [],
       accountFilters: [],
-      term: null
+      term: null,
+      expandedTransfers: []
     }
   },
   watch: {
@@ -424,9 +481,59 @@ export default {
       })
       return categories
     },
-    statements() {
+    allStatements() {
       return this.$store.getters.getStatements(this.range.from, this.range.to)
+    },
+    statements() {
+      return this.allStatements
           .filter(it => this.showInactive || it.attributes.state === 'ACTIVE')
+          .filter(it => !this.statementLinks.some(link => link.relationships.firstStatement.data.id === it.id || link.relationships.secondStatement.data.id === it.id))
+    },
+    statementLinks() {
+      return Object.values(this.$store.state.statementLinks);
+    },
+    entries() {
+      let showLinks = this.tagFilters.length <= 0 && this.categoryFilters.length <= 0
+
+      const links = showLinks && this.statements.length && this.statementLinks.map((it, index) => {
+        const first = this.allStatements.find(statement => statement.id === it.relationships.firstStatement.data.id)
+        const second = this.allStatements.find(statement => statement.id === it.relationships.secondStatement.data.id)
+
+        const firstAccount = first && this.accounts.find(account => account.id === first.relationships.account.data.id)
+        const secondAccount = second && this.accounts.find(account => account.id === second.relationships.account.data.id)
+
+        return {
+          type: 'transfer',
+          id: Date.now() + '-' + index,
+          date: first && first.attributes.valueDate,
+          show: false,
+          first, firstAccount,
+          second, secondAccount
+        }
+      }).filter(it => {
+        return it.first && it.second
+      }).filter(it => {
+        const containsFirstAccount = this.accountFilters.length <= 0 || this.accountFilters.includes(it.firstAccount.id)
+        const containsSecondAccount = this.accountFilters.length <= 0 || this.accountFilters.includes(it.secondAccount.id)
+        return containsFirstAccount || containsSecondAccount
+      }) || []
+
+      const statements = this.filteredStatements
+          .map(it => {
+            return {
+              type: 'statement',
+              id: it.id,
+              date: it.attributes.valueDate,
+              statement: it
+            }
+          })
+
+      const entries = links.concat(statements)
+      entries.sort((a, b) => {
+        if (a.date === b.date) return b.id - a.id
+        return a.date < b.date ? 1 : -1;
+      })
+      return entries
     },
     filteredStatements() {
       return this.statements
@@ -500,6 +607,7 @@ export default {
       this.$store.dispatch('fetchAccounts')
       this.$store.dispatch('fetchCategories')
       this.$store.dispatch('fetchTags')
+      this.$store.dispatch('fetchStatementLinks')
       this.refreshStatements()
     },
     refreshStatements() {
@@ -639,6 +747,16 @@ export default {
     clearAccountFilters() {
       this.accountFilters = []
       this.updateStatementFilters()
+    },
+    toggleTransfer(entry) {
+      if (this.isExpanded(entry)) {
+        this.expandedTransfers = this.expandedTransfers.filter(it => it !== entry.id)
+      } else {
+        this.expandedTransfers = [...this.expandedTransfers, entry.id]
+      }
+    },
+    isExpanded(entry) {
+      return this.expandedTransfers.includes(entry.id)
     }
   }
 }

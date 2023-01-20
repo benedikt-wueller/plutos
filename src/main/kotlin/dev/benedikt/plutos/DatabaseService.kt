@@ -20,7 +20,8 @@ object DatabaseService {
             TagPatterns,
             Accounts,
             Statements,
-            StatementTags
+            StatementTags,
+            StatementLinks
         )
 
         createDefaultCategories()
